@@ -10,11 +10,21 @@ import (
 )
 
 func main() {
+	// Load config
+	cfg := config.LoadConfig()
+
 	// 1. Connect to database
-	err := database.Connect(&config.LoadConfig().DB)
+	err := database.Connect(&cfg.DB)
 	if err != nil {
 		panic(err)
 	}
+
+	// 2. Connect to Valkey
+	err = database.ConnectValkey(&cfg.Valkey)
+	if err != nil {
+		panic(err)
+	}
+	defer database.CloseValkey()
 
 	// 2. Setup router
 	router := gin.Default()
