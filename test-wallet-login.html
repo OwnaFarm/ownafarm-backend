@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OwnAFarm - Wallet Login Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.umd.min.js"></script>
+    <style>
+        :root {
+            --primary: #10b981;
+            --primary-dark: #059669;
+            --secondary: #1e293b;
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --success: #22c55e;
+            --error: #ef4444;
+            --warning: #f59e0b;
+            --border: #334155;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #1a2332 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            width: 100%;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary) 0%, #34d399 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border);
+            margin-bottom: 24px;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .step-badge {
+            background: var(--primary);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 16px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px -10px rgba(16, 185, 129, 0.5);
+        }
+
+        .btn-secondary {
+            background: var(--secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #2d3b50;
+        }
+
+        .info-box {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .info-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .info-value {
+            font-family: 'SF Mono', 'Consolas', monospace;
+            font-size: 0.9rem;
+            word-break: break-all;
+            color: var(--primary);
+        }
+
+        .status {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .status.show {
+            display: block;
+        }
+
+        .status.success {
+            background: rgba(34, 197, 94, 0.15);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: var(--success);
+        }
+
+        .status.error {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: var(--error);
+        }
+
+        .status.loading {
+            background: rgba(245, 158, 11, 0.15);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            color: var(--warning);
+        }
+
+        .response-box {
+            background: #0d1117;
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 16px;
+            font-family: 'SF Mono', 'Consolas', monospace;
+            font-size: 0.8rem;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            display: none;
+        }
+
+        .response-box.show {
+            display: block;
+        }
+
+        .divider {
+            height: 1px;
+            background: var(--border);
+            margin: 20px 0;
+        }
+
+        .wallet-icon {
+            width: 24px;
+            height: 24px;
+        }
+
+        .connected-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(34, 197, 94, 0.15);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            padding: 8px 16px;
+            border-radius: 20px;
+            color: var(--success);
+            font-size: 0.875rem;
+            margin-bottom: 16px;
+        }
+
+        .pulse {
+            width: 8px;
+            height: 8px;
+            background: var(--success);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        .api-info {
+            background: rgba(71, 85, 105, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 16px;
+            font-size: 0.85rem;
+        }
+
+        .api-method {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.75rem;
+            margin-right: 8px;
+        }
+
+        .api-method.post {
+            background: #3b82f6;
+        }
+
+        .api-endpoint {
+            font-family: 'SF Mono', 'Consolas', monospace;
+            color: var(--text-secondary);
+        }
+
+        footer {
+            margin-top: 40px;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        footer a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">🌾 OwnAFarm</div>
+            <p class="subtitle">Wallet Signature Login Test Page</p>
+        </header>
+
+        <!-- Step 1: Connect Wallet -->
+        <div class="card" id="step1">
+            <div class="card-title">
+                <span class="step-badge">Step 1</span>
+                Connect Wallet
+            </div>
+            <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                Connect your MetaMask wallet to get started.
+            </p>
+            <button class="btn btn-primary" id="connectBtn" onclick="connectWallet()">
+                <svg class="wallet-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                    <line x1="1" y1="10" x2="23" y2="10"></line>
+                </svg>
+                Connect MetaMask
+            </button>
+            <div class="status" id="connectStatus"></div>
+        </div>
+
+        <!-- Step 2: Get Nonce -->
+        <div class="card" id="step2">
+            <div class="card-title">
+                <span class="step-badge">Step 2</span>
+                Get Nonce
+            </div>
+            <div class="api-info">
+                <span class="api-method">GET</span>
+                <span class="api-endpoint">/auth/nonce?wallet_address=...</span>
+            </div>
+            <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                Request a unique nonce from the server that will be used for signing.
+            </p>
+            <button class="btn btn-secondary" id="nonceBtn" onclick="getNonce()" disabled>
+                Request Nonce
+            </button>
+            <div class="status" id="nonceStatus"></div>
+            <div class="response-box" id="nonceResponse"></div>
+        </div>
+
+        <!-- Step 3: Sign Message -->
+        <div class="card" id="step3">
+            <div class="card-title">
+                <span class="step-badge">Step 3</span>
+                Sign Message
+            </div>
+            <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                Sign the message with your wallet to prove ownership.
+            </p>
+            <div class="info-box" id="messageToSign" style="display: none;">
+                <div class="info-label">Message to Sign:</div>
+                <div class="info-value" id="messageContent"></div>
+            </div>
+            <button class="btn btn-secondary" id="signBtn" onclick="signMessage()" disabled>
+                Sign Message
+            </button>
+            <div class="status" id="signStatus"></div>
+        </div>
+
+        <!-- Step 4: Login -->
+        <div class="card" id="step4">
+            <div class="card-title">
+                <span class="step-badge">Step 4</span>
+                Login
+            </div>
+            <div class="api-info">
+                <span class="api-method post">POST</span>
+                <span class="api-endpoint">/auth/login</span>
+            </div>
+            <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                Submit the signature to authenticate and receive a JWT token.
+            </p>
+            <button class="btn btn-primary" id="loginBtn" onclick="login()" disabled>
+                🚀 Login with Signature
+            </button>
+            <div class="status" id="loginStatus"></div>
+            <div class="response-box" id="loginResponse"></div>
+        </div>
+
+        <!-- Result -->
+        <div class="card" id="resultCard" style="display: none;">
+            <div class="card-title">
+                ✅ Authentication Successful
+            </div>
+            <div class="info-box">
+                <div class="info-label">JWT Token:</div>
+                <div class="info-value" id="jwtToken"></div>
+            </div>
+            <div class="divider"></div>
+            <div class="info-box" style="background: rgba(59, 130, 246, 0.1); border-color: rgba(59, 130, 246, 0.3);">
+                <div class="info-label">User Info:</div>
+                <div class="info-value" id="userInfo" style="color: #60a5fa;"></div>
+            </div>
+        </div>
+
+        <footer>
+            <p>API Base URL: <a href="http://localhost:8080" target="_blank">http://localhost:8080</a></p>
+            <p style="margin-top: 8px;">Made for OwnAFarm Backend Testing</p>
+        </footer>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080';
+
+        let walletAddress = null;
+        let nonce = null;
+        let message = null;
+        let signature = null;
+        let provider = null;
+        let signer = null;
+
+        // Helper functions
+        function showStatus(elementId, type, message) {
+            const el = document.getElementById(elementId);
+            el.className = `status show ${type}`;
+            el.textContent = message;
+        }
+
+        function hideStatus(elementId) {
+            document.getElementById(elementId).className = 'status';
+        }
+
+        function showResponse(elementId, data) {
+            const el = document.getElementById(elementId);
+            el.textContent = JSON.stringify(data, null, 2);
+            el.className = 'response-box show';
+        }
+
+        // Step 1: Connect Wallet
+        async function connectWallet() {
+            const btn = document.getElementById('connectBtn');
+
+            if (typeof window.ethereum === 'undefined') {
+                showStatus('connectStatus', 'error', '❌ MetaMask is not installed. Please install it first.');
+                return;
+            }
+
+            try {
+                btn.disabled = true;
+                showStatus('connectStatus', 'loading', '⏳ Connecting to wallet...');
+
+                provider = new ethers.BrowserProvider(window.ethereum);
+                const accounts = await provider.send('eth_requestAccounts', []);
+                walletAddress = accounts[0];
+                signer = await provider.getSigner();
+
+                btn.innerHTML = `<div class="pulse"></div> Connected: ${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`;
+                btn.classList.remove('btn-primary');
+                btn.classList.add('btn-secondary');
+
+                showStatus('connectStatus', 'success', `✅ Connected: ${walletAddress}`);
+
+                // Enable next step
+                document.getElementById('nonceBtn').disabled = false;
+
+            } catch (error) {
+                showStatus('connectStatus', 'error', `❌ Failed to connect: ${error.message}`);
+                btn.disabled = false;
+            }
+        }
+
+        // Step 2: Get Nonce
+        async function getNonce() {
+            const btn = document.getElementById('nonceBtn');
+
+            try {
+                btn.disabled = true;
+                showStatus('nonceStatus', 'loading', '⏳ Requesting nonce from server...');
+
+                const response = await fetch(`${API_BASE}/auth/nonce?wallet_address=${walletAddress}`);
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    nonce = data.data.nonce;
+                    message = data.data.message;
+
+                    showStatus('nonceStatus', 'success', `✅ Nonce received: ${nonce}`);
+                    showResponse('nonceResponse', data);
+
+                    // Show message to sign
+                    document.getElementById('messageToSign').style.display = 'block';
+                    document.getElementById('messageContent').textContent = message;
+
+                    // Enable next step
+                    document.getElementById('signBtn').disabled = false;
+                } else {
+                    showStatus('nonceStatus', 'error', `❌ Error: ${data.message}`);
+                    showResponse('nonceResponse', data);
+                    btn.disabled = false;
+                }
+
+            } catch (error) {
+                showStatus('nonceStatus', 'error', `❌ Request failed: ${error.message}`);
+                btn.disabled = false;
+            }
+        }
+
+        // EIP-712 Domain and Types (must match backend config)
+        const EIP712_DOMAIN = {
+            name: 'OwnaFarm',
+            version: '1',
+            chainId: 5000  // Mantle Chain ID - change if needed
+        };
+
+        const EIP712_TYPES = {
+            Login: [
+                { name: 'message', type: 'string' }
+            ]
+        };
+
+        // Step 3: Sign Message (using EIP-712)
+        async function signMessage() {
+            const btn = document.getElementById('signBtn');
+
+            try {
+                btn.disabled = true;
+                showStatus('signStatus', 'loading', '⏳ Please sign the message in MetaMask (EIP-712)...');
+
+                // Use EIP-712 typed data signing
+                signature = await signer.signTypedData(
+                    EIP712_DOMAIN,
+                    EIP712_TYPES,
+                    { message: message }
+                );
+
+                showStatus('signStatus', 'success', `✅ Message signed successfully!`);
+
+                // Enable next step
+                document.getElementById('loginBtn').disabled = false;
+
+            } catch (error) {
+                showStatus('signStatus', 'error', `❌ Signing failed: ${error.message}`);
+                btn.disabled = false;
+            }
+        }
+
+        // Step 4: Login
+        async function login() {
+            const btn = document.getElementById('loginBtn');
+
+            try {
+                btn.disabled = true;
+                showStatus('loginStatus', 'loading', '⏳ Authenticating...');
+
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        wallet_address: walletAddress,
+                        signature: signature,
+                        nonce: nonce
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    showStatus('loginStatus', 'success', '✅ Login successful!');
+                    showResponse('loginResponse', data);
+
+                    // Show result card
+                    document.getElementById('resultCard').style.display = 'block';
+                    document.getElementById('jwtToken').textContent = data.data.token;
+                    document.getElementById('userInfo').textContent = JSON.stringify(data.data.user, null, 2);
+
+                } else {
+                    showStatus('loginStatus', 'error', `❌ Login failed: ${data.message}`);
+                    showResponse('loginResponse', data);
+                    btn.disabled = false;
+                }
+
+            } catch (error) {
+                showStatus('loginStatus', 'error', `❌ Request failed: ${error.message}`);
+                btn.disabled = false;
+            }
+        }
+
+        // Check if already connected on page load
+        window.addEventListener('load', async () => {
+            if (typeof window.ethereum !== 'undefined') {
+                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                if (accounts.length > 0) {
+                    walletAddress = accounts[0];
+                    provider = new ethers.BrowserProvider(window.ethereum);
+                    signer = await provider.getSigner();
+
+                    const btn = document.getElementById('connectBtn');
+                    btn.innerHTML = `<div class="pulse"></div> Connected: ${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`;
+                    btn.classList.remove('btn-primary');
+                    btn.classList.add('btn-secondary');
+
+                    showStatus('connectStatus', 'success', `✅ Connected: ${walletAddress}`);
+                    document.getElementById('nonceBtn').disabled = false;
+                }
+            }
+        });
+
+        // Listen for account changes
+        if (typeof window.ethereum !== 'undefined') {
+            window.ethereum.on('accountsChanged', (accounts) => {
+                if (accounts.length === 0) {
+                    location.reload();
+                } else {
+                    walletAddress = accounts[0];
+                    location.reload();
+                }
+            });
+        }
+    </script>
+</body>
+
+</html>

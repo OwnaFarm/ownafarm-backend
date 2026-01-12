@@ -12,6 +12,8 @@ type Config struct {
 	App    AppConfig
 	DB     DBConfig
 	Valkey ValkeyConfig
+	JWT    JWTConfig
+	Auth   AuthConfig
 }
 
 type AppConfig struct {
@@ -32,6 +34,18 @@ type ValkeyConfig struct {
 	Password string
 	DB       int
 	TLS      bool
+}
+
+type JWTConfig struct {
+	Secret          string
+	ExpirationHours int
+}
+
+type AuthConfig struct {
+	NonceTTLMinutes int
+	EIP712Name      string
+	EIP712Version   string
+	EIP712ChainID   int64
 }
 
 func getEnv(key, fallback string) string {
@@ -59,6 +73,21 @@ func LoadConfig() *Config {
 		log.Fatal("env: VALKEY_TLS must be a boolean")
 	}
 
+	jwtExpirationHours, err := strconv.Atoi(getEnv("JWT_EXPIRATION_HOURS", "24"))
+	if err != nil {
+		log.Fatal("env: JWT_EXPIRATION_HOURS must be an integer")
+	}
+
+	nonceTTLMinutes, err := strconv.Atoi(getEnv("NONCE_TTL_MINUTES", "5"))
+	if err != nil {
+		log.Fatal("env: NONCE_TTL_MINUTES must be an integer")
+	}
+
+	eip712ChainID, err := strconv.ParseInt(getEnv("EIP712_CHAIN_ID", "5000"), 10, 64)
+	if err != nil {
+		log.Fatal("env: EIP712_CHAIN_ID must be an integer")
+	}
+
 	return &Config{
 		App: AppConfig{
 			Port: getEnv("APP_PORT", "8080"),
@@ -76,6 +105,16 @@ func LoadConfig() *Config {
 			Password: getEnv("VALKEY_PASSWORD", ""),
 			DB:       valkeyDB,
 			TLS:      valkeyTLS,
+		},
+		JWT: JWTConfig{
+			Secret:          getEnv("JWT_SECRET", ""),
+			ExpirationHours: jwtExpirationHours,
+		},
+		Auth: AuthConfig{
+			NonceTTLMinutes: nonceTTLMinutes,
+			EIP712Name:      getEnv("EIP712_NAME", "OwnaFarm"),
+			EIP712Version:   getEnv("EIP712_VERSION", "1"),
+			EIP712ChainID:   eip712ChainID,
 		},
 	}
 }

@@ -2,6 +2,8 @@
   <dictionary name="project">
     <words>
       <w>gorm</w>
+      <w>ownafarm</w>
+      <w>valkey</w>
     </words>
   </dictionary>
 </component>

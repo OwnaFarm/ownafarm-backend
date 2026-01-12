@@ -1,17 +1,28 @@
 package main
 
 import (
-	"net/http"
+	"log"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/ownafarm/ownafarm-backend/internal/config"
 	"github.com/ownafarm/ownafarm-backend/internal/database"
-	"github.com/ownafarm/ownafarm-backend/internal/models"
+	"github.com/ownafarm/ownafarm-backend/internal/handlers"
+	"github.com/ownafarm/ownafarm-backend/internal/middleware"
+	"github.com/ownafarm/ownafarm-backend/internal/repositories"
+	"github.com/ownafarm/ownafarm-backend/internal/routes"
+	"github.com/ownafarm/ownafarm-backend/internal/services"
+	"github.com/ownafarm/ownafarm-backend/internal/utils"
 )
 
 func main() {
 	// Load config
 	cfg := config.LoadConfig()
+
+	// Validate JWT secret
+	if cfg.JWT.Secret == "" {
+		log.Fatal("JWT_SECRET environment variable is required")
+	}
 
 	// 1. Connect to database
 	err := database.Connect(&cfg.DB)
@@ -26,24 +37,40 @@ func main() {
 	}
 	defer database.CloseValkey()
 
-	// 2. Setup router
+	// 3. Setup router
 	router := gin.Default()
 
-	// 3. Routes
-	router.GET("/", func(ctx *gin.Context) {
-		ctx.JSON(http.StatusOK, gin.H{
-			"message": "Hello World",
-		})
-	})
+	// 4. Setup CORS - Allow all origins (temporary)
+	router.Use(cors.New(cors.Config{
+		AllowAllOrigins:  true,
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+	}))
 
-	router.GET("/users", func(ctx *gin.Context) {
-		var users []models.User
-		database.DB.Find(&users)
-		ctx.JSON(http.StatusOK, gin.H{"data": users})
-	})
+	// 5. Initialize Utils
+	jwtUtil := utils.NewJWTUtil(&cfg.JWT)
 
-	// 4. Run the server
-	err = router.Run(":8080")
+	// 6. Initialize Services
+	nonceService := services.NewNonceService(database.Valkey, &cfg.Auth)
+	authService := services.NewAuthService(&cfg.Auth)
+
+	// 7. Initialize Repository
+	userRepo := repositories.NewUserRepository(database.DB)
+
+	// 8. Initialize Handlers
+	userHandler := handlers.NewUserHandler(userRepo)
+	authHandler := handlers.NewAuthHandler(userRepo, nonceService, authService, jwtUtil)
+
+	// 9. Initialize Middleware
+	authMiddleware := middleware.NewAuthMiddleware(jwtUtil)
+
+	// 10. Routes
+	routes.SetupRoutes(router, userHandler, authHandler, authMiddleware)
+
+	// 11. Run the server
+	err = router.Run(":" + cfg.App.Port)
 	if err != nil {
 		panic(err)
 	}
