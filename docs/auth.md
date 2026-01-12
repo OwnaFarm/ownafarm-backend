@@ -24,7 +24,7 @@ Mendapatkan nonce untuk proses signing.
 
 | Method | Endpoint | Auth |
 |--------|----------|------|
-| `GET` | `/v1/auth/nonce` | ❌ |
+| `GET` | `/auth/nonce` | ❌ |
 
 ### Request
 
@@ -52,7 +52,7 @@ Verifikasi signature dan dapatkan JWT token.
 
 | Method | Endpoint | Auth |
 |--------|----------|------|
-| `POST` | `/v1/auth/login` | ❌ |
+| `POST` | `/auth/login` | ❌ |
 
 ### Request Body
 
