@@ -63,13 +63,20 @@ func main() {
 	userHandler := handlers.NewUserHandler(userRepo)
 	authHandler := handlers.NewAuthHandler(userRepo, nonceService, authService, jwtUtil)
 
-	// 9. Initialize Middleware
+	// 9. Initialize Storage Service
+	storageService, err := services.NewR2StorageService(&cfg.R2)
+	if err != nil {
+		log.Fatal("Failed to initialize R2 storage:", err)
+	}
+	_ = storageService // TODO: Wire to handlers when needed
+
+	// 10. Initialize Middleware
 	authMiddleware := middleware.NewAuthMiddleware(jwtUtil)
 
-	// 10. Routes
+	// 11. Routes
 	routes.SetupRoutes(router, userHandler, authHandler, authMiddleware)
 
-	// 11. Run the server
+	// 12. Run the server
 	err = router.Run(":" + cfg.App.Port)
 	if err != nil {
 		panic(err)

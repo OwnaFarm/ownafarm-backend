@@ -14,6 +14,7 @@ type Config struct {
 	Valkey ValkeyConfig
 	JWT    JWTConfig
 	Auth   AuthConfig
+	R2     R2Config
 }
 
 type AppConfig struct {
@@ -46,6 +47,15 @@ type AuthConfig struct {
 	EIP712Name      string
 	EIP712Version   string
 	EIP712ChainID   int64
+}
+
+type R2Config struct {
+	AccountID       string
+	AccessKeyID     string
+	SecretAccessKey string
+	Bucket          string
+	Endpoint        string
+	Region          string
 }
 
 func getEnv(key, fallback string) string {
@@ -115,6 +125,14 @@ func LoadConfig() *Config {
 			EIP712Name:      getEnv("EIP712_NAME", "OwnaFarm"),
 			EIP712Version:   getEnv("EIP712_VERSION", "1"),
 			EIP712ChainID:   eip712ChainID,
+		},
+		R2: R2Config{
+			AccountID:       getEnv("R2_ACCOUNT_ID", ""),
+			AccessKeyID:     getEnv("R2_ACCESS_KEY_ID", ""),
+			SecretAccessKey: getEnv("R2_SECRET_ACCESS_KEY", ""),
+			Bucket:          getEnv("R2_BUCKET", ""),
+			Endpoint:        getEnv("R2_ENDPOINT", ""),
+			Region:          getEnv("R2_REGION", "auto"),
 		},
 	}
 }
