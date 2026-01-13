@@ -51,32 +51,50 @@ func main() {
 
 	// 5. Initialize Utils
 	jwtUtil := utils.NewJWTUtil(&cfg.JWT)
+	adminJwtUtil := utils.NewAdminJWTUtil(&cfg.JWT)
 
-	// 6. Initialize Services
-	nonceService := services.NewNonceService(database.Valkey, &cfg.Auth)
-	authService := services.NewAuthService(&cfg.Auth)
-
-	// 7. Initialize Repository
-	userRepo := repositories.NewUserRepository(database.DB)
-
-	// 8. Initialize Handlers
-	userHandler := handlers.NewUserHandler(userRepo)
-	authHandler := handlers.NewAuthHandler(userRepo, nonceService, authService, jwtUtil)
-
-	// 9. Initialize Storage Service
+	// 6. Initialize Storage Service
 	storageService, err := services.NewR2StorageService(&cfg.R2)
 	if err != nil {
 		log.Fatal("Failed to initialize R2 storage:", err)
 	}
-	_ = storageService // TODO: Wire to handlers when needed
 
-	// 10. Initialize Middleware
+	// 7. Initialize Services
+	nonceService := services.NewNonceService(database.Valkey, &cfg.Auth)
+	authService := services.NewAuthService(&cfg.Auth)
+	rateLimitService := services.NewRateLimitService(database.Valkey)
+
+	// 8. Initialize Repositories
+	userRepo := repositories.NewUserRepository(database.DB)
+	farmerRepo := repositories.NewFarmerRepository(database.DB)
+	adminUserRepo := repositories.NewAdminUserRepository(database.DB)
+	auditLogRepo := repositories.NewAuditLogRepository(database.DB)
+
+	// 9. Initialize Farmer Service
+	farmerService := services.NewFarmerService(farmerRepo, storageService, auditLogRepo)
+	adminAuthService := services.NewAdminAuthService(
+		adminUserRepo,
+		rateLimitService,
+		adminJwtUtil,
+		authService,
+		database.Valkey,
+		cfg.Auth.NonceTTLMinutes,
+	)
+
+	// 10. Initialize Handlers
+	userHandler := handlers.NewUserHandler(userRepo)
+	authHandler := handlers.NewAuthHandler(userRepo, nonceService, authService, jwtUtil)
+	farmerHandler := handlers.NewFarmerHandler(farmerService)
+	adminAuthHandler := handlers.NewAdminAuthHandler(adminAuthService)
+
+	// 11. Initialize Middleware
 	authMiddleware := middleware.NewAuthMiddleware(jwtUtil)
+	adminAuthMiddleware := middleware.NewAdminAuthMiddleware(adminJwtUtil)
 
-	// 11. Routes
-	routes.SetupRoutes(router, userHandler, authHandler, authMiddleware)
+	// 12. Routes
+	routes.SetupRoutes(router, userHandler, authHandler, farmerHandler, adminAuthHandler, authMiddleware, adminAuthMiddleware)
 
-	// 12. Run the server
+	// 13. Run the server
 	err = router.Run(":" + cfg.App.Port)
 	if err != nil {
 		panic(err)

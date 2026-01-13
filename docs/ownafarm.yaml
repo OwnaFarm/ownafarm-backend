@@ -1,0 +1,1234 @@
+openapi: 3.1.0
+info:
+  title: OwnaFarm API
+  description: >-
+    API OwnaFarm - Platform investasi pertanian berbasis blockchain.
+    Autentikasi menggunakan EIP-712 Typed Data Signature dari wallet Ethereum.
+  version: 1.0.0
+servers:
+  - url: https://ownafarm-backend-production.up.railway.app
+    description: Production Server
+tags:
+  - name: Authentication
+    description: Autentikasi user menggunakan wallet Ethereum (EIP-712)
+  - name: Admin Authentication
+    description: Autentikasi admin menggunakan wallet signature
+  - name: Admin Farmer Management
+    description: Manajemen farmer oleh admin
+  - name: Farmer Registration
+    description: Registrasi petani dengan upload dokumen
+
+paths:
+  # ==================== USER AUTHENTICATION ====================
+  /auth/nonce:
+    get:
+      summary: Get Nonce
+      description: Mendapatkan nonce untuk proses signing EIP-712
+      operationId: getNonce
+      tags:
+        - Authentication
+      parameters:
+        - name: wallet_address
+          in: query
+          required: true
+          description: Alamat wallet Ethereum (format 0x...)
+          schema:
+            type: string
+            pattern: ^0x[0-9a-fA-F]{40}$
+            example: '0x742d35Cc6634C0532925a3b844BC9e7595f7CCCC'
+      responses:
+        '200':
+          description: Nonce berhasil dibuat
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    $ref: '#/components/schemas/NonceResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missingWallet:
+                  summary: Wallet address tidak ada
+                  value:
+                    status: error
+                    message: wallet_address is required
+                invalidFormat:
+                  summary: Format wallet tidak valid
+                  value:
+                    status: error
+                    message: Invalid wallet address format
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Failed to generate nonce
+
+  /auth/login:
+    post:
+      summary: Login dengan Wallet Signature
+      description: Verifikasi signature EIP-712 dan dapatkan JWT token
+      operationId: loginWithSignature
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login berhasil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidBody:
+                  summary: Request body tidak valid
+                  value:
+                    status: error
+                    message: Invalid request body
+                invalidFormat:
+                  summary: Format wallet tidak valid
+                  value:
+                    status: error
+                    message: Invalid wallet address format
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidNonce:
+                  summary: Nonce tidak valid atau expired
+                  value:
+                    status: error
+                    message: Invalid or expired nonce
+                invalidSignature:
+                  summary: Signature tidak cocok
+                  value:
+                    status: error
+                    message: Invalid signature
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Failed to verify signature
+
+  # ==================== ADMIN AUTHENTICATION ====================
+  /admin/auth/nonce:
+    get:
+      summary: Get Admin Nonce
+      description: >-
+        Mendapatkan nonce untuk proses signing admin.
+        Nonce hanya bisa dipakai sekali dan expired dalam 5 menit.
+      operationId: getAdminNonce
+      tags:
+        - Admin Authentication
+      parameters:
+        - name: wallet_address
+          in: query
+          required: true
+          description: Wallet address admin (format 0x...)
+          schema:
+            type: string
+            pattern: ^0x[0-9a-fA-F]{40}$
+            example: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb'
+      responses:
+        '200':
+          description: Nonce berhasil dibuat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminNonceResponse'
+        '400':
+          description: Invalid wallet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Invalid wallet address format
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Failed to generate nonce
+
+  /admin/auth/login:
+    post:
+      summary: Admin Login
+      description: >-
+        Login admin dengan wallet signature.
+        Rate limit: 5 attempts per 15 menit.
+      operationId: adminLogin
+      tags:
+        - Admin Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminLoginRequest'
+      responses:
+        '200':
+          description: Login berhasil
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminLoginResponse'
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Invalid request body
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseWithAttempts'
+              examples:
+                invalidSignature:
+                  summary: Signature tidak valid
+                  value:
+                    status: error
+                    message: Invalid signature
+                    remaining_attempts: 4
+                invalidNonce:
+                  summary: Nonce tidak valid
+                  value:
+                    status: error
+                    message: Invalid or expired nonce
+                    remaining_attempts: 3
+                adminNotFound:
+                  summary: Admin tidak ditemukan
+                  value:
+                    status: error
+                    message: Admin not found
+                accountInactive:
+                  summary: Akun tidak aktif
+                  value:
+                    status: error
+                    message: Account is inactive
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitErrorResponse'
+              example:
+                status: error
+                message: Too many login attempts
+                retry_after_seconds: 900
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Internal server error
+
+  # ==================== ADMIN FARMER MANAGEMENT ====================
+  /admin/farmers:
+    get:
+      summary: Get Farmers List
+      description: Mendapatkan list farmers dengan filtering, pagination, dan sorting
+      operationId: getAdminFarmers
+      tags:
+        - Admin Farmer Management
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: >-
+            Filter status farmer (bisa multiple).
+            Values: pending, under_review, approved, rejected, suspended
+          schema:
+            type: array
+            items:
+              type: string
+              enum:
+                - pending
+                - under_review
+                - approved
+                - rejected
+                - suspended
+          style: form
+          explode: true
+        - name: page
+          in: query
+          required: false
+          description: Page number
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          required: false
+          description: Items per page (max 100)
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+        - name: sort_by
+          in: query
+          required: false
+          description: Field untuk sorting
+          schema:
+            type: string
+            enum:
+              - created_at
+              - full_name
+              - status
+            default: created_at
+        - name: sort_order
+          in: query
+          required: false
+          description: Urutan sorting
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+            default: desc
+        - name: search
+          in: query
+          required: false
+          description: Search di name, email, phone
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List farmers berhasil diambil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    $ref: '#/components/schemas/FarmersListResponse'
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Invalid query parameters
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Unauthorized
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Failed to get farmers
+
+  /admin/farmers/{id}/approve:
+    patch:
+      summary: Approve Farmer
+      description: >-
+        Approve farmer yang statusnya `pending`. Status akan berubah menjadi `approved`.
+      operationId: approveFarmer
+      tags:
+        - Admin Farmer Management
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Farmer ID (UUID)
+          schema:
+            type: string
+            format: uuid
+            example: 550e8400-e29b-41d4-a716-446655440000
+      responses:
+        '200':
+          description: Farmer berhasil di-approve
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    $ref: '#/components/schemas/FarmerApproveResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Farmer ID is required
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Unauthorized
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Farmer not found
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Farmer has already been processed (not in pending status)
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Internal server error
+
+  /admin/farmers/{id}/reject:
+    patch:
+      summary: Reject Farmer
+      description: >-
+        Reject farmer yang statusnya `pending`. Status akan berubah menjadi `rejected`.
+        Status ini bersifat final dan tidak dapat diubah.
+      operationId: rejectFarmer
+      tags:
+        - Admin Farmer Management
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Farmer ID (UUID)
+          schema:
+            type: string
+            format: uuid
+            example: 550e8400-e29b-41d4-a716-446655440000
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FarmerRejectRequest'
+      responses:
+        '200':
+          description: Farmer berhasil di-reject
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    $ref: '#/components/schemas/FarmerRejectResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Farmer ID is required
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Unauthorized
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Farmer not found
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Farmer has already been processed (not in pending status)
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Internal server error
+
+  # ==================== FARMER REGISTRATION ====================
+  /farmers/documents/presign:
+    post:
+      summary: Get Presigned URLs
+      description: >-
+        Mendapatkan presigned URLs untuk upload dokumen langsung ke S3/Storage.
+        File diupload langsung ke storage, tidak melalui backend.
+      operationId: getPresignedUrls
+      tags:
+        - Farmer Registration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PresignRequest'
+      responses:
+        '200':
+          description: Presigned URLs berhasil dibuat
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    $ref: '#/components/schemas/PresignResponse'
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Invalid request body
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Failed to generate presigned URLs
+
+  /farmers/register:
+    post:
+      summary: Register Farmer
+      description: >-
+        Mendaftarkan petani baru dengan data lengkap dan dokumen yang sudah diupload.
+        Backend akan memverifikasi file sudah ada di storage sebelum menyimpan data farmer.
+      operationId: registerFarmer
+      tags:
+        - Farmer Registration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FarmerRegistrationRequest'
+      responses:
+        '201':
+          description: Farmer berhasil didaftarkan
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    $ref: '#/components/schemas/FarmerRegistrationResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidBody:
+                  summary: Request body tidak valid
+                  value:
+                    status: error
+                    message: Invalid request body
+                invalidDate:
+                  summary: Format tanggal salah
+                  value:
+                    status: error
+                    message: Invalid date format for date_of_birth, expected YYYY-MM-DD
+        '409':
+          description: Conflict - Data sudah ada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Farmer with this email or phone number already exists
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Failed to register farmer
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token dari login endpoint
+
+  schemas:
+    # ==================== USER AUTH SCHEMAS ====================
+    NonceResponse:
+      type: object
+      properties:
+        nonce:
+          type: string
+          description: Nonce yang dibuat untuk signing
+          example: abc123xyz
+        message:
+          type: string
+          description: Pesan yang harus di-sign oleh wallet
+          example: 'Sign this message to login to OwnaFarm: abc123xyz'
+
+    LoginRequest:
+      type: object
+      required:
+        - wallet_address
+        - signature
+        - nonce
+      properties:
+        wallet_address:
+          type: string
+          pattern: ^0x[0-9a-fA-F]{40}$
+          description: Alamat wallet Ethereum
+          example: '0x742d35Cc6634C0532925a3b844BC9e7595f7CCCC'
+        signature:
+          type: string
+          description: Signature EIP-712 dari wallet
+          example: '0x...'
+        nonce:
+          type: string
+          description: Nonce dari endpoint /auth/nonce
+          example: abc123xyz
+
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: JWT token untuk autentikasi
+          example: eyJhbGciOiJIUzI1NiIs...
+        user:
+          $ref: '#/components/schemas/User'
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: UUID user
+          example: 550e8400-e29b-41d4-a716-446655440000
+        wallet_address:
+          type: string
+          description: Alamat wallet yang sudah dinormalisasi
+          example: '0x742d35Cc6634C0532925a3b844BC9e7595f7CCCC'
+
+    # ==================== ADMIN AUTH SCHEMAS ====================
+    AdminNonceResponse:
+      type: object
+      properties:
+        nonce:
+          type: string
+          description: Nonce untuk signing (one-time use, expired 5 menit)
+          example: a1b2c3d4e5f6789012345678
+        sign_message:
+          type: string
+          description: Pesan yang harus di-sign oleh wallet
+          example: "Sign this message to login to OwnaFarm Admin.\n\nNonce: a1b2c3d4e5f6789012345678"
+
+    AdminLoginRequest:
+      type: object
+      required:
+        - wallet_address
+        - signature
+        - nonce
+      properties:
+        wallet_address:
+          type: string
+          pattern: ^0x[0-9a-fA-F]{40}$
+          description: Wallet address admin (format 0x...)
+          example: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb'
+        signature:
+          type: string
+          description: Signature hasil sign sign_message
+          example: '0x1234567890abcdef...'
+        nonce:
+          type: string
+          description: Nonce dari endpoint nonce (one-time use)
+          example: a1b2c3d4e5f6789012345678
+
+    AdminLoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: JWT token untuk autentikasi
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        admin:
+          $ref: '#/components/schemas/Admin'
+
+    Admin:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: UUID admin
+          example: 550e8400-e29b-41d4-a716-446655440000
+        wallet_address:
+          type: string
+          description: Wallet address admin (lowercase)
+          example: '0x742d35cc6634c0532925a3b844bc9e7595f0beb'
+        role:
+          type: string
+          description: Role admin
+          enum:
+            - admin
+          example: admin
+
+    # ==================== ADMIN FARMER MANAGEMENT SCHEMAS ====================
+    FarmersListResponse:
+      type: object
+      properties:
+        farmers:
+          type: array
+          items:
+            $ref: '#/components/schemas/FarmerListItem'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    FarmerListItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: UUID farmer
+          example: f1a2b3c4-d5e6-7890-abcd-ef1234567890
+        status:
+          type: string
+          description: Status farmer
+          enum:
+            - pending
+            - under_review
+            - approved
+            - rejected
+            - suspended
+          example: pending
+        full_name:
+          type: string
+          description: Nama lengkap farmer
+          example: Budi Santoso
+        email:
+          type: string
+          format: email
+          description: Email farmer
+          example: budi@example.com
+        phone_number:
+          type: string
+          description: Nomor telepon farmer
+          example: '+628123456789'
+        business_name:
+          type: string
+          description: Nama usaha
+          example: Tani Makmur
+        business_type:
+          type: string
+          description: Jenis usaha
+          enum:
+            - individual
+            - cv
+            - pt
+            - ud
+            - cooperative
+          example: cv
+        province:
+          type: string
+          description: Provinsi
+          example: Jawa Barat
+        city:
+          type: string
+          description: Kota/Kabupaten
+          example: Bandung
+        years_of_experience:
+          type: integer
+          description: Tahun pengalaman bertani
+          example: 10
+        created_at:
+          type: string
+          format: date-time
+          description: Tanggal registrasi
+          example: '2024-01-15T10:30:00Z'
+        reviewed_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Tanggal review (null jika belum direview)
+          example: null
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          description: Halaman saat ini
+          example: 1
+        limit:
+          type: integer
+          description: Jumlah item per halaman
+          example: 10
+        total_items:
+          type: integer
+          description: Total semua item
+          example: 42
+        total_pages:
+          type: integer
+          description: Total halaman
+          example: 5
+
+    FarmerApproveResponse:
+      type: object
+      properties:
+        farmer_id:
+          type: string
+          format: uuid
+          description: UUID farmer yang di-approve
+          example: 550e8400-e29b-41d4-a716-446655440000
+        status:
+          type: string
+          description: Status farmer setelah di-approve
+          enum:
+            - approved
+          example: approved
+        reviewed_by:
+          type: string
+          format: uuid
+          description: UUID admin yang melakukan approve
+          example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        reviewed_at:
+          type: string
+          format: date-time
+          description: Waktu approve
+          example: '2024-01-15T14:30:00Z'
+
+    FarmerRejectRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          maxLength: 500
+          description: Alasan penolakan (max 500 karakter)
+          example: Dokumen tidak lengkap, mohon upload ulang KTP yang jelas.
+
+    FarmerRejectResponse:
+      type: object
+      properties:
+        farmer_id:
+          type: string
+          format: uuid
+          description: UUID farmer yang di-reject
+          example: 550e8400-e29b-41d4-a716-446655440000
+        status:
+          type: string
+          description: Status farmer setelah di-reject
+          enum:
+            - rejected
+          example: rejected
+        reviewed_by:
+          type: string
+          format: uuid
+          description: UUID admin yang melakukan reject
+          example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        reviewed_at:
+          type: string
+          format: date-time
+          description: Waktu reject
+          example: '2024-01-15T14:30:00Z'
+        reason:
+          type: string
+          description: Alasan penolakan
+          example: Dokumen tidak lengkap
+
+    # ==================== FARMER REGISTRATION SCHEMAS ====================
+    PresignRequest:
+      type: object
+      required:
+        - document_types
+      properties:
+        document_types:
+          type: array
+          description: List jenis dokumen yang akan diupload
+          items:
+            type: string
+            enum:
+              - ktp_photo
+              - selfie_with_ktp
+              - npwp_photo
+              - bank_statement
+              - land_certificate
+              - business_license
+              - invoice_file
+          example:
+            - ktp_photo
+            - selfie_with_ktp
+
+    PresignResponse:
+      type: object
+      properties:
+        urls:
+          type: array
+          items:
+            $ref: '#/components/schemas/PresignUrl'
+
+    PresignUrl:
+      type: object
+      properties:
+        document_type:
+          type: string
+          description: Jenis dokumen
+          example: ktp_photo
+        upload_url:
+          type: string
+          format: uri
+          description: Presigned URL untuk upload (PUT request)
+          example: 'https://s3.amazonaws.com/bucket/path?signature=...'
+        file_key:
+          type: string
+          description: File key untuk digunakan saat registrasi
+          example: farmers/documents/uuid-ktp.jpg
+
+    FarmerRegistrationRequest:
+      type: object
+      required:
+        - personal_info
+        - business_info
+        - documents
+      properties:
+        personal_info:
+          $ref: '#/components/schemas/PersonalInfo'
+        business_info:
+          $ref: '#/components/schemas/BusinessInfo'
+        documents:
+          type: array
+          description: List dokumen yang sudah diupload (min 1)
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/DocumentInfo'
+
+    PersonalInfo:
+      type: object
+      required:
+        - full_name
+        - email
+        - phone_number
+        - id_number
+        - date_of_birth
+        - address
+        - province
+        - city
+        - district
+        - postal_code
+      properties:
+        full_name:
+          type: string
+          maxLength: 100
+          description: Nama lengkap sesuai KTP
+          example: Budi Santoso
+        email:
+          type: string
+          format: email
+          maxLength: 255
+          description: Email yang valid
+          example: budi.santoso@example.com
+        phone_number:
+          type: string
+          maxLength: 20
+          description: Nomor telepon aktif
+          example: '+628123456789'
+        id_number:
+          type: string
+          maxLength: 20
+          description: Nomor KTP/NIK
+          example: '3201234567890123'
+        date_of_birth:
+          type: string
+          format: date
+          description: Tanggal lahir (format YYYY-MM-DD)
+          example: '1985-06-15'
+        address:
+          type: string
+          description: Alamat lengkap
+          example: Jl. Merdeka No. 123
+        province:
+          type: string
+          maxLength: 100
+          description: Provinsi
+          example: Jawa Barat
+        city:
+          type: string
+          maxLength: 100
+          description: Kota/Kabupaten
+          example: Bandung
+        district:
+          type: string
+          maxLength: 100
+          description: Kecamatan
+          example: Coblong
+        postal_code:
+          type: string
+          maxLength: 10
+          description: Kode pos
+          example: '40132'
+
+    BusinessInfo:
+      type: object
+      required:
+        - business_type
+        - bank_name
+        - bank_account_number
+        - bank_account_name
+      properties:
+        business_name:
+          type: string
+          maxLength: 200
+          description: Nama usaha (optional)
+          example: Tani Makmur
+        business_type:
+          type: string
+          description: Jenis usaha
+          enum:
+            - individual
+            - cv
+            - pt
+            - ud
+            - cooperative
+          example: cv
+        npwp:
+          type: string
+          maxLength: 30
+          description: Nomor NPWP (optional)
+          example: 12.345.678.9-123.000
+        bank_name:
+          type: string
+          maxLength: 100
+          description: Nama bank
+          example: Bank BCA
+        bank_account_number:
+          type: string
+          maxLength: 30
+          description: Nomor rekening
+          example: '1234567890'
+        bank_account_name:
+          type: string
+          maxLength: 100
+          description: Nama pemilik rekening
+          example: Budi Santoso
+        years_of_experience:
+          type: integer
+          description: Tahun pengalaman bertani
+          example: 10
+        crops_expertise:
+          type: array
+          description: List komoditas yang dikuasai
+          items:
+            type: string
+          example:
+            - padi
+            - jagung
+            - cabai
+
+    DocumentInfo:
+      type: object
+      required:
+        - document_type
+        - file_key
+      properties:
+        document_type:
+          type: string
+          description: Jenis dokumen
+          enum:
+            - ktp_photo
+            - selfie_with_ktp
+            - npwp_photo
+            - bank_statement
+            - land_certificate
+            - business_license
+            - invoice_file
+          example: ktp_photo
+        file_key:
+          type: string
+          description: File key dari presigned URL response
+          example: farmers/documents/uuid-ktp.jpg
+        file_name:
+          type: string
+          description: Nama file original (optional)
+          example: ktp-budi.jpg
+        file_size:
+          type: integer
+          description: Ukuran file dalam bytes (optional)
+          example: 245678
+        mime_type:
+          type: string
+          description: MIME type file (optional)
+          example: image/jpeg
+
+    FarmerRegistrationResponse:
+      type: object
+      properties:
+        farmer_id:
+          type: string
+          format: uuid
+          description: UUID farmer yang baru dibuat
+          example: f1a2b3c4-d5e6-7890-abcd-ef1234567890
+        status:
+          type: string
+          description: Status farmer (default pending)
+          enum:
+            - pending
+            - under_review
+            - approved
+            - rejected
+            - suspended
+          example: pending
+
+    # ==================== ERROR SCHEMAS ====================
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: error
+        message:
+          type: string
+          example: Error message here
+
+    ErrorResponseWithAttempts:
+      type: object
+      properties:
+        status:
+          type: string
+          example: error
+        message:
+          type: string
+          example: Invalid signature
+        remaining_attempts:
+          type: integer
+          description: Jumlah percobaan login tersisa
+          example: 4
+
+    RateLimitErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: error
+        message:
+          type: string
+          example: Too many login attempts
+        retry_after_seconds:
+          type: integer
+          description: Waktu tunggu dalam detik sebelum bisa mencoba lagi
+          example: 900
