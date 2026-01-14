@@ -17,6 +17,7 @@ func SetupRoutes(
 	farmHandler *handlers.FarmHandler,
 	invoiceHandler *handlers.InvoiceHandler,
 	investmentHandler *handlers.InvestmentHandler,
+	leaderboardHandler *handlers.LeaderboardHandler,
 	authMiddleware *middleware.AuthMiddleware,
 	adminAuthMiddleware *middleware.AdminAuthMiddleware,
 	farmerAuthMiddleware *middleware.FarmerAuthMiddleware,
@@ -58,6 +59,9 @@ func SetupRoutes(
 		protected.GET("/crops/:id", investmentHandler.GetCrop)
 		protected.POST("/crops/:id/water", investmentHandler.WaterCrop)
 		protected.POST("/crops/:id/harvest/sync", investmentHandler.SyncHarvest)
+
+		// Leaderboard route
+		protected.GET("/leaderboard", leaderboardHandler.GetLeaderboard)
 	}
 
 	// Admin auth routes (public)

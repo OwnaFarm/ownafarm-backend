@@ -25,6 +25,8 @@ tags:
     description: Manajemen invoice oleh farmer (authenticated)
   - name: Investor Crops
     description: API untuk manajemen investasi (crops) dari investor. Investasi disinkronisasi dari blockchain Mantle Network.
+  - name: Investor Leaderboard
+    description: API untuk leaderboard investor berdasarkan XP, kekayaan, atau profit.
 
 paths:
   # ==================== USER AUTHENTICATION ====================
@@ -2199,6 +2201,80 @@ paths:
                 status: error
                 message: Internal server error
 
+  # ==================== INVESTOR LEADERBOARD ====================
+  /leaderboard:
+    get:
+      summary: Get Leaderboard
+      description: >-
+        Mendapatkan leaderboard investor berdasarkan XP, kekayaan (total investment), atau profit.
+        Leaderboard di-cache selama 5 menit untuk performa.
+        Posisi user saat ini selalu fresh (tidak di-cache).
+      operationId: getLeaderboard
+      tags:
+        - Investor Leaderboard
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: type
+          in: query
+          required: true
+          description: Tipe leaderboard
+          schema:
+            type: string
+            enum:
+              - xp
+              - wealth
+              - profit
+            example: xp
+        - name: limit
+          in: query
+          required: false
+          description: Jumlah user yang ditampilkan (max 100)
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+            example: 10
+      responses:
+        '200':
+          description: Leaderboard berhasil diambil
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaderboardResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missingType:
+                  summary: Type tidak ada
+                  value:
+                    error: "Key: 'GetLeaderboardRequest.Type' Error:Field validation for 'Type' failed on the 'required' tag"
+                invalidType:
+                  summary: Type tidak valid
+                  value:
+                    error: "Key: 'GetLeaderboardRequest.Type' Error:Field validation for 'Type' failed on the 'oneof' tag"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: User not authenticated
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Internal server error
+
 components:
   securitySchemes:
     BearerAuth:
@@ -3765,6 +3841,51 @@ components:
           type: integer
           description: XP yang didapat dari harvest (50 XP per harvest). 0 jika sudah pernah harvested.
           example: 50
+
+    # ==================== LEADERBOARD SCHEMAS ====================
+    LeaderboardEntry:
+      type: object
+      properties:
+        rank:
+          type: integer
+          description: Posisi di leaderboard (1-indexed)
+          example: 1
+        wallet_address:
+          type: string
+          description: Wallet address user
+          example: "0x742d35Cc6634C0532925a3b844BC9e7595f7CCCC"
+        score:
+          type: number
+          format: float
+          description: Score berdasarkan tipe leaderboard (XP/Wealth/Profit)
+          example: 2500
+        is_current_user:
+          type: boolean
+          description: Apakah entry ini adalah user saat ini
+          example: false
+
+    LeaderboardResponse:
+      type: object
+      properties:
+        type:
+          type: string
+          description: Tipe leaderboard
+          enum:
+            - xp
+            - wealth
+            - profit
+          example: xp
+        entries:
+          type: array
+          description: Top-N users di leaderboard
+          items:
+            $ref: '#/components/schemas/LeaderboardEntry'
+        user_entry:
+          description: Posisi user saat ini jika tidak masuk top-N (null jika sudah di dalam entries)
+          oneOf:
+            - $ref: '#/components/schemas/LeaderboardEntry'
+            - type: 'null'
+          example: null
 
     # ==================== ERROR SCHEMAS ====================
     ErrorResponse:

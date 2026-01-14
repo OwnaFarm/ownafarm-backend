@@ -84,6 +84,8 @@ func main() {
 	farmService := services.NewFarmService(farmRepo)
 	invoiceService := services.NewInvoiceService(invoiceRepo, farmRepo, storageService, auditLogRepo)
 	investmentService := services.NewInvestmentService(investmentRepo, invoiceRepo, userRepo, blockchainService)
+	leaderboardRepo := repositories.NewLeaderboardRepository(database.DB)
+	leaderboardService := services.NewLeaderboardService(leaderboardRepo, database.Valkey)
 	adminAuthService := services.NewAdminAuthService(
 		adminUserRepo,
 		rateLimitService,
@@ -101,6 +103,7 @@ func main() {
 	farmHandler := handlers.NewFarmHandler(farmService)
 	invoiceHandler := handlers.NewInvoiceHandler(invoiceService)
 	investmentHandler := handlers.NewInvestmentHandler(investmentService)
+	leaderboardHandler := handlers.NewLeaderboardHandler(leaderboardService)
 
 	// 12. Initialize Middleware
 	authMiddleware := middleware.NewAuthMiddleware(jwtUtil)
@@ -117,6 +120,7 @@ func main() {
 		farmHandler,
 		invoiceHandler,
 		investmentHandler,
+		leaderboardHandler,
 		authMiddleware,
 		adminAuthMiddleware,
 		farmerAuthMiddleware,

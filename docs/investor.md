@@ -28,6 +28,7 @@ flowchart LR
 | `GET` | `/crops/:id` | ✅ | Detail satu crop |
 | `POST` | `/crops/:id/water` | ✅ | Siram crop (game mechanic) |
 | `POST` | `/crops/:id/harvest/sync` | ✅ | Sync status harvest |
+| `GET` | `/leaderboard` | ✅ | Get investor leaderboard |
 
 > **Auth**: Semua endpoint memerlukan JWT token di header `Authorization: Bearer <token>`
 
@@ -482,6 +483,89 @@ progress = (now - invested_at) / duration_days * 100
 
 - Progress **0-99%**: Status `growing`
 - Progress **100%**: Status `ready`
+
+---
+
+## 8. Get Leaderboard
+
+Mendapatkan leaderboard investor berdasarkan XP, kekayaan (total investment), atau profit.
+
+| Method | Endpoint | Auth |
+|--------|----------|------|
+| `GET` | `/leaderboard` | ✅ |
+
+### Query Parameters
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | string | ✅ | Tipe leaderboard: `xp`, `wealth`, `profit` |
+| `limit` | int | ❌ | Jumlah user (default: 10, max: 100) |
+
+### Response
+
+```json
+{
+  "type": "xp",
+  "entries": [
+    {
+      "rank": 1,
+      "wallet_address": "0x742d35Cc6634C0532925a3b844BC9e7595f7CCCC",
+      "score": 2500,
+      "is_current_user": false
+    },
+    {
+      "rank": 2,
+      "wallet_address": "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
+      "score": 1800,
+      "is_current_user": true
+    }
+  ],
+  "user_entry": null
+}
+```
+
+### User Entry
+
+Jika user saat ini **tidak masuk top-N**, field `user_entry` akan berisi posisi user:
+
+```json
+{
+  "type": "xp",
+  "entries": [...],
+  "user_entry": {
+    "rank": 42,
+    "wallet_address": "0x...",
+    "score": 215,
+    "is_current_user": true
+  }
+}
+```
+
+### Leaderboard Types
+
+| Type | Score Calculation |
+|------|-------------------|
+| `xp` | Total XP user dari game mechanics (watering, harvesting) |
+| `wealth` | Total jumlah investasi (sum of `amount`) |
+| `profit` | Total profit dari crops yang sudah di-harvest (`harvest_amount - amount`) |
+
+### Caching
+
+- Leaderboard di-cache selama **5 menit** untuk performa
+- Posisi user saat ini (`user_entry`) selalu fresh (tidak di-cache)
+
+### Example Requests
+
+```bash
+# Get XP leaderboard (top 10)
+GET /leaderboard?type=xp
+
+# Get Wealth leaderboard (top 50)
+GET /leaderboard?type=wealth&limit=50
+
+# Get Profit leaderboard
+GET /leaderboard?type=profit&limit=20
+```
 
 ---
 
