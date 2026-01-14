@@ -32,7 +32,8 @@ func (h *UserHandler) GetByID(c *gin.Context) {
 		return
 	}
 
-	user, err := h.repo.GetByID(id)
+	// Regenerate water before returning user data
+	user, err := h.repo.RegenerateWater(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{

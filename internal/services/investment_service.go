@@ -237,8 +237,8 @@ func (s *InvestmentService) WaterCrop(ctx context.Context, userID, cropID string
 		return nil, ErrAlreadyHarvested
 	}
 
-	// Get user
-	user, err := s.userRepo.GetByID(userID)
+	// Regenerate water and get fresh user data
+	user, err := s.userRepo.RegenerateWater(userID)
 	if err != nil {
 		return nil, err
 	}
@@ -248,17 +248,28 @@ func (s *InvestmentService) WaterCrop(ctx context.Context, userID, cropID string
 		return nil, ErrNotEnoughWater
 	}
 
-	// Increment water count
+	// Increment water count on investment
 	if err := s.investmentRepo.IncrementWaterCount(investment.ID); err != nil {
 		return nil, err
 	}
 
-	// Update user water points and XP
-	user.WaterPoints -= WaterCost
-	user.XP += WaterXPGain
-	// Note: User update should be done via repository, simplified here
+	// Update user stats: deduct water and add XP
+	newWaterPoints := user.WaterPoints - WaterCost
+	newXP := user.XP + WaterXPGain
 
-	// Reload investment
+	err = s.userRepo.UpdateGameStats(userID, map[string]interface{}{
+		"water_points": newWaterPoints,
+		"xp":           newXP,
+	})
+	if err != nil {
+		if errors.Is(err, repositories.ErrNotEnoughWater) {
+			// Race condition: another request used the water
+			return nil, ErrNotEnoughWater
+		}
+		return nil, err
+	}
+
+	// Reload investment with updated water count
 	investment, err = s.investmentRepo.GetByIDAndUserID(cropID, userID)
 	if err != nil {
 		return nil, err
@@ -267,7 +278,7 @@ func (s *InvestmentService) WaterCrop(ctx context.Context, userID, cropID string
 	return &response.WaterCropResponse{
 		Crop:           s.toCropResponse(investment),
 		XPGained:       WaterXPGain,
-		WaterRemaining: user.WaterPoints,
+		WaterRemaining: newWaterPoints,
 	}, nil
 }
 

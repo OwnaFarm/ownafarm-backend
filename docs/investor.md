@@ -21,6 +21,7 @@ flowchart LR
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
+| `GET` | `/users/:id` | ✅ | Get user profile & game stats |
 | `POST` | `/crops/sync` | ✅ | Sync investments dari blockchain |
 | `GET` | `/crops` | ✅ | List semua crops user |
 | `GET` | `/crops/:id` | ✅ | Detail satu crop |
@@ -31,7 +32,64 @@ flowchart LR
 
 ---
 
-## 1. Sync Investments
+## 1. Get User Profile
+
+Mendapatkan profil user termasuk game stats (level, XP, water points). **Water points akan di-regenerate otomatis** saat endpoint ini dipanggil.
+
+| Method | Endpoint | Auth |
+|--------|----------|------|
+| `GET` | `/users/:id` | ✅ |
+
+### Path Parameters
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `id` | UUID | User ID (dari JWT token) |
+
+### Response
+
+```json
+{
+  "status": "success",
+  "data": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "wallet_address": "0x742d35Cc6634C0532925a3b844BC9e7595f7CCCC",
+    "name": "Budi Investor",
+    "email": "budi@example.com",
+    "avatar": "avatar_1",
+    "level": 3,
+    "xp": 215,
+    "water_points": 87,
+    "last_regen_at": "2026-01-14T10:30:00Z",
+    "last_login_at": "2026-01-14T12:00:00Z",
+    "created_at": "2026-01-01T00:00:00Z",
+    "updated_at": "2026-01-14T12:05:00Z"
+  }
+}
+```
+
+### Water Regeneration Logic
+
+- Endpoint ini akan menghitung waktu sejak `last_regen_at`
+- Menambahkan water berdasarkan rumus: `water_added = floor(elapsed_minutes / 5)`
+- Update `water_points` (max 100) dan `last_regen_at`
+- Contoh: Jika 25 menit berlalu, user dapat +5 water points
+
+### Level Calculation
+
+Level dihitung otomatis dari total XP:
+
+| Level | XP Required | Level | XP Required |
+|-------|-------------|-------|-------------|
+| 1 | 0 | 6 | 1,800 |
+| 2 | 50 | 7 | 2,450 |
+| 3 | 200 | 8 | 3,200 |
+| 4 | 450 | 9 | 4,050 |
+| 5 | 800 | 10 | 5,000 |
+
+---
+
+## 2. Sync Investments
 
 Sinkronisasi investasi dari blockchain ke database. Panggil setelah investor melakukan transaksi `invest()` di frontend.
 
@@ -91,7 +149,7 @@ sequenceDiagram
 
 ---
 
-## 2. List Crops
+## 3. List Crops
 
 Mendapatkan daftar semua crops milik user dengan pagination.
 
@@ -138,7 +196,7 @@ Mendapatkan daftar semua crops milik user dengan pagination.
 
 ---
 
-## 3. Get Crop Detail
+## 4. Get Crop Detail
 
 Mendapatkan detail satu crop.
 
@@ -174,7 +232,7 @@ Mendapatkan detail satu crop.
 
 ---
 
-## 4. Water Crop
+## 5. Water Crop
 
 Menyiram tanaman (game mechanic untuk XP). Tidak mempengaruhi progress - hanya gimmick.
 
@@ -207,11 +265,22 @@ Menyiram tanaman (game mechanic untuk XP). Tidak mempengaruhi progress - hanya g
 
 - Setiap water menggunakan **10 water points**
 - User mendapat **5 XP** per water
-- Water points regenerasi secara otomatis
+- **Water Regeneration:**
+  - Regenerasi otomatis **1 water point per 5 menit** (12 per jam)
+  - Maximum **100 water points**
+  - Full recovery dalam ~8 jam jika habis total
+  - Regenerasi terjadi saat GET `/users/:id` atau sebelum watering
+- **Level System:**
+  - Level naik otomatis berdasarkan total XP
+  - Formula: `level = 1 + floor(sqrt(xp/50))`
+  - Level 2 = 50 XP, Level 3 = 200 XP, Level 4 = 450 XP, dst
+- **Concurrency Protection:**
+  - Jika 2+ water request simultan, sistem mencegah water negatif
+  - Akan return error `Not enough water points` jika race condition
 
 ---
 
-## 5. Sync Harvest
+## 6. Sync Harvest
 
 Sinkronisasi status harvest dari blockchain setelah user melakukan `harvest()` di frontend.
 
