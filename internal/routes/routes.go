@@ -16,6 +16,7 @@ func SetupRoutes(
 	adminAuthHandler *handlers.AdminAuthHandler,
 	farmHandler *handlers.FarmHandler,
 	invoiceHandler *handlers.InvoiceHandler,
+	investmentHandler *handlers.InvestmentHandler,
 	authMiddleware *middleware.AuthMiddleware,
 	adminAuthMiddleware *middleware.AdminAuthMiddleware,
 	farmerAuthMiddleware *middleware.FarmerAuthMiddleware,
@@ -47,6 +48,13 @@ func SetupRoutes(
 		protected.GET("/users/:id", userHandler.GetByID)
 		// Farmer document download (requires auth)
 		protected.GET("/farmers/:farmer_id/documents/:document_id/download", farmerHandler.GetDocumentDownloadURL)
+
+		// Crop/Investment routes
+		protected.POST("/crops/sync", investmentHandler.SyncInvestments)
+		protected.GET("/crops", investmentHandler.ListCrops)
+		protected.GET("/crops/:id", investmentHandler.GetCrop)
+		protected.POST("/crops/:id/water", investmentHandler.WaterCrop)
+		protected.POST("/crops/:id/harvest/sync", investmentHandler.SyncHarvest)
 	}
 
 	// Admin auth routes (public)

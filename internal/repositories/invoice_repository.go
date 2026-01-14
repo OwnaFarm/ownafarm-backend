@@ -23,6 +23,7 @@ type InvoiceRepository interface {
 	GetByID(id string) (*models.Invoice, error)
 	GetByIDWithFarm(id string) (*models.Invoice, error)
 	GetByIDAndFarmerID(id, farmerID string) (*models.Invoice, error)
+	GetByTokenID(tokenID int64) (*models.Invoice, error)
 	GetAllByFarmerID(farmerID string, filter InvoiceFilter) ([]models.Invoice, int64, error)
 	GetAllWithPagination(filter InvoiceFilter) ([]models.Invoice, int64, error)
 	Update(invoice *models.Invoice) error
@@ -215,6 +216,15 @@ func (r *invoiceRepository) GetAllWithPagination(filter InvoiceFilter) ([]models
 	}
 
 	return invoices, totalCount, nil
+}
+
+// GetByTokenID retrieves an invoice by its blockchain token ID
+func (r *invoiceRepository) GetByTokenID(tokenID int64) (*models.Invoice, error) {
+	var invoice models.Invoice
+	if err := r.db.Preload("Farm").First(&invoice, "token_id = ?", tokenID).Error; err != nil {
+		return nil, err
+	}
+	return &invoice, nil
 }
 
 // Update updates an existing invoice record

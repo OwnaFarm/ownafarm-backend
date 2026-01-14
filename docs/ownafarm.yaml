@@ -23,6 +23,8 @@ tags:
     description: Manajemen kebun oleh farmer (authenticated)
   - name: Farmer Invoice Management
     description: Manajemen invoice oleh farmer (authenticated)
+  - name: Investor Crops
+    description: API untuk manajemen investasi (crops) dari investor. Investasi disinkronisasi dari blockchain Mantle Network.
 
 paths:
   # ==================== USER AUTHENTICATION ====================
@@ -1662,6 +1664,353 @@ paths:
                 status: error
                 message: Internal server error
 
+  # ==================== INVESTOR CROPS ====================
+  /crops/sync:
+    post:
+      summary: Sync Investments
+      description: >-
+        Sinkronisasi investasi dari blockchain ke database.
+        Panggil setelah investor melakukan transaksi invest() di frontend.
+      operationId: syncCrops
+      tags:
+        - Investor Crops
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CropSyncRequest'
+      responses:
+        '200':
+          description: Sync berhasil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    $ref: '#/components/schemas/CropSyncResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                notAuthenticated:
+                  summary: User not authenticated
+                  value:
+                    status: error
+                    message: User not authenticated
+                walletNotFound:
+                  summary: Wallet address not found
+                  value:
+                    status: error
+                    message: Wallet address not found
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Internal server error
+
+  /crops:
+    get:
+      summary: List Crops
+      description: Mendapatkan daftar semua crops milik user dengan pagination.
+      operationId: listCrops
+      tags:
+        - Investor Crops
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: 'Filter status crop: growing, ready, harvested'
+          schema:
+            type: string
+            enum:
+              - growing
+              - ready
+              - harvested
+        - name: page
+          in: query
+          required: false
+          description: 'Page number (default: 1)'
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          required: false
+          description: 'Items per page (default: 10, max: 100)'
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+        - name: sort_by
+          in: query
+          required: false
+          description: Field untuk sorting
+          schema:
+            type: string
+            enum:
+              - invested_at
+              - progress
+              - status
+            default: invested_at
+        - name: sort_order
+          in: query
+          required: false
+          description: Urutan sorting
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+            default: desc
+      responses:
+        '200':
+          description: List crops berhasil diambil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    $ref: '#/components/schemas/CropsListResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: User not authenticated
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Internal server error
+
+  /crops/{id}:
+    get:
+      summary: Get Crop Detail
+      description: Mendapatkan detail satu crop.
+      operationId: getCropDetail
+      tags:
+        - Investor Crops
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Crop/Investment ID (UUID)
+          schema:
+            type: string
+            format: uuid
+            example: 550e8400-e29b-41d4-a716-446655440000
+      responses:
+        '200':
+          description: Crop detail berhasil diambil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    $ref: '#/components/schemas/Crop'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: User not authenticated
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Crop not found
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Internal server error
+
+  /crops/{id}/water:
+    post:
+      summary: Water Crop
+      description: >-
+        Menyiram tanaman (game mechanic untuk XP).
+        Tidak mempengaruhi progress - hanya gimmick.
+        Setiap water menggunakan 10 water points dan user mendapat 5 XP.
+      operationId: waterCrop
+      tags:
+        - Investor Crops
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Crop/Investment ID (UUID)
+          schema:
+            type: string
+            format: uuid
+            example: 550e8400-e29b-41d4-a716-446655440000
+      responses:
+        '200':
+          description: Crop berhasil disiram
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    $ref: '#/components/schemas/WaterCropResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Not enough water points
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: User not authenticated
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Crop not found
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Internal server error
+
+  /crops/{id}/harvest/sync:
+    post:
+      summary: Sync Harvest
+      description: >-
+        Sinkronisasi status harvest dari blockchain setelah user melakukan harvest() di frontend.
+      operationId: syncHarvest
+      tags:
+        - Investor Crops
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Crop/Investment ID (UUID)
+          schema:
+            type: string
+            format: uuid
+            example: 550e8400-e29b-41d4-a716-446655440000
+      responses:
+        '200':
+          description: Harvest sync berhasil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    $ref: '#/components/schemas/HarvestSyncResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Crop already harvested
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: User not authenticated
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Crop not found
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Internal server error
+
 components:
   securitySchemes:
     BearerAuth:
@@ -2959,6 +3308,167 @@ components:
           type: string
           description: Alasan penolakan
           example: Target pendanaan tidak realistis
+
+    # ==================== INVESTOR CROPS SCHEMAS ====================
+    CropSyncRequest:
+      type: object
+      properties:
+        tx_hash:
+          type: string
+          description: Transaction hash untuk tracking (optional)
+          example: '0x123abc...'
+
+    CropSyncResponse:
+      type: object
+      properties:
+        synced_count:
+          type: integer
+          description: Jumlah crops yang berhasil disinkronkan
+          example: 2
+        new_crops:
+          type: array
+          items:
+            $ref: '#/components/schemas/Crop'
+
+    Crop:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: UUID crop/investment
+          example: 550e8400-e29b-41d4-a716-446655440000
+        name:
+          type: string
+          description: Nama tanaman/proyek
+          example: Cabai Indofood
+        image:
+          type: string
+          format: uri
+          description: URL gambar crop untuk game
+          example: https://storage.ownafarm.com/crops/cabai.png
+        cctv_image:
+          type: string
+          format: uri
+          nullable: true
+          description: URL gambar CCTV farm
+          example: https://storage.ownafarm.com/cctv/farm1.jpg
+        location:
+          type: string
+          description: Lokasi farm
+          example: Malang, Jawa Timur
+        progress:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+          description: Progress pertumbuhan dalam persen
+          example: 75
+        days_left:
+          type: integer
+          minimum: 0
+          description: Jumlah hari tersisa sampai maturity
+          example: 15
+        yield_percent:
+          type: number
+          format: float
+          description: Persentase return
+          example: 18.5
+        invested:
+          type: number
+          format: float
+          description: Jumlah investasi dalam GOLD
+          example: 1000.0
+        status:
+          type: string
+          description: Status crop
+          enum:
+            - growing
+            - ready
+            - harvested
+          example: growing
+        planted_at:
+          type: string
+          format: date-time
+          description: Waktu investasi/penanaman
+          example: '2026-01-10T10:00:00Z'
+        water_count:
+          type: integer
+          minimum: 0
+          description: Jumlah siram yang sudah dilakukan
+          example: 5
+        can_harvest:
+          type: boolean
+          description: Apakah crop sudah bisa dipanen
+          example: false
+        harvest_amount:
+          type: number
+          format: float
+          nullable: true
+          description: Jumlah hasil panen (muncul setelah harvested)
+          example: null
+
+    CropsListResponse:
+      type: object
+      properties:
+        crops:
+          type: array
+          items:
+            $ref: '#/components/schemas/Crop'
+        total_count:
+          type: integer
+          description: Total jumlah crops
+          example: 10
+        page:
+          type: integer
+          description: Halaman saat ini
+          example: 1
+        limit:
+          type: integer
+          description: Items per page
+          example: 10
+
+    WaterCropResponse:
+      type: object
+      properties:
+        crop:
+          $ref: '#/components/schemas/Crop'
+        xp_gained:
+          type: integer
+          description: XP yang didapat dari watering
+          example: 5
+        water_remaining:
+          type: integer
+          description: Sisa water points
+          example: 90
+
+    HarvestSyncResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: UUID crop
+          example: 550e8400-e29b-41d4-a716-446655440000
+        name:
+          type: string
+          description: Nama tanaman
+          example: Cabai Indofood
+        status:
+          type: string
+          description: Status crop setelah harvest
+          enum:
+            - harvested
+          example: harvested
+        can_harvest:
+          type: boolean
+          description: Tidak bisa harvest lagi
+          example: false
+        harvest_amount:
+          type: number
+          format: float
+          description: Total hasil panen (principal + yield)
+          example: 1185.0
 
     # ==================== ERROR SCHEMAS ====================
     ErrorResponse:

@@ -71,11 +71,19 @@ func main() {
 	auditLogRepo := repositories.NewAuditLogRepository(database.DB)
 	farmRepo := repositories.NewFarmRepository(database.DB)
 	invoiceRepo := repositories.NewInvoiceRepository(database.DB)
+	investmentRepo := repositories.NewInvestmentRepository(database.DB)
 
-	// 9. Initialize Farmer Service
+	// 9. Initialize Blockchain Service
+	blockchainService, err := services.NewBlockchainService(&cfg.Blockchain)
+	if err != nil {
+		log.Fatal("Failed to initialize blockchain service:", err)
+	}
+
+	// 10. Initialize Services
 	farmerService := services.NewFarmerService(farmerRepo, storageService, auditLogRepo)
 	farmService := services.NewFarmService(farmRepo)
 	invoiceService := services.NewInvoiceService(invoiceRepo, farmRepo, storageService, auditLogRepo)
+	investmentService := services.NewInvestmentService(investmentRepo, invoiceRepo, userRepo, blockchainService)
 	adminAuthService := services.NewAdminAuthService(
 		adminUserRepo,
 		rateLimitService,
@@ -85,20 +93,21 @@ func main() {
 		cfg.Auth.NonceTTLMinutes,
 	)
 
-	// 10. Initialize Handlers
+	// 11. Initialize Handlers
 	userHandler := handlers.NewUserHandler(userRepo)
 	authHandler := handlers.NewAuthHandler(userRepo, nonceService, authService, jwtUtil)
 	farmerHandler := handlers.NewFarmerHandler(farmerService)
 	adminAuthHandler := handlers.NewAdminAuthHandler(adminAuthService)
 	farmHandler := handlers.NewFarmHandler(farmService)
 	invoiceHandler := handlers.NewInvoiceHandler(invoiceService)
+	investmentHandler := handlers.NewInvestmentHandler(investmentService)
 
-	// 11. Initialize Middleware
+	// 12. Initialize Middleware
 	authMiddleware := middleware.NewAuthMiddleware(jwtUtil)
 	adminAuthMiddleware := middleware.NewAdminAuthMiddleware(adminJwtUtil)
 	farmerAuthMiddleware := middleware.NewFarmerAuthMiddleware(authMiddleware, farmerRepo)
 
-	// 12. Routes
+	// 13. Routes
 	routes.SetupRoutes(
 		router,
 		userHandler,
@@ -107,6 +116,7 @@ func main() {
 		adminAuthHandler,
 		farmHandler,
 		invoiceHandler,
+		investmentHandler,
 		authMiddleware,
 		adminAuthMiddleware,
 		farmerAuthMiddleware,

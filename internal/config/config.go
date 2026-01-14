@@ -9,12 +9,13 @@ import (
 )
 
 type Config struct {
-	App    AppConfig
-	DB     DBConfig
-	Valkey ValkeyConfig
-	JWT    JWTConfig
-	Auth   AuthConfig
-	R2     R2Config
+	App        AppConfig
+	DB         DBConfig
+	Valkey     ValkeyConfig
+	JWT        JWTConfig
+	Auth       AuthConfig
+	R2         R2Config
+	Blockchain BlockchainConfig
 }
 
 type AppConfig struct {
@@ -56,6 +57,11 @@ type R2Config struct {
 	Bucket          string
 	Endpoint        string
 	Region          string
+}
+
+type BlockchainConfig struct {
+	MantleRPCURL    string
+	OwnaFarmNFTAddr string
 }
 
 func getEnv(key, fallback string) string {
@@ -133,6 +139,10 @@ func LoadConfig() *Config {
 			Bucket:          getEnv("R2_BUCKET", ""),
 			Endpoint:        getEnv("R2_ENDPOINT", ""),
 			Region:          getEnv("R2_REGION", "auto"),
+		},
+		Blockchain: BlockchainConfig{
+			MantleRPCURL:    getEnv("MANTLE_RPC_URL", "https://rpc.sepolia.mantle.xyz"),
+			OwnaFarmNFTAddr: getEnv("OWNAFARM_NFT_ADDRESS", "0xC51601dde25775bA2740EE14D633FA54e12Ef6C7"),
 		},
 	}
 }
