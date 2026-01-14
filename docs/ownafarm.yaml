@@ -3759,30 +3759,12 @@ components:
     HarvestSyncResponse:
       type: object
       properties:
-        id:
-          type: string
-          format: uuid
-          description: UUID crop
-          example: 550e8400-e29b-41d4-a716-446655440000
-        name:
-          type: string
-          description: Nama tanaman
-          example: Cabai Indofood
-        status:
-          type: string
-          description: Status crop setelah harvest
-          enum:
-            - harvested
-          example: harvested
-        can_harvest:
-          type: boolean
-          description: Tidak bisa harvest lagi
-          example: false
-        harvest_amount:
-          type: number
-          format: float
-          description: Total hasil panen (principal + yield)
-          example: 1185.0
+        crop:
+          $ref: '#/components/schemas/Crop'
+        xp_gained:
+          type: integer
+          description: XP yang didapat dari harvest (50 XP per harvest). 0 jika sudah pernah harvested.
+          example: 50
 
     # ==================== ERROR SCHEMAS ====================
     ErrorResponse:

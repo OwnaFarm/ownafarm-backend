@@ -19,6 +19,8 @@ const (
 	WaterXPGain = 5
 	// WaterCost is the water points cost per water action
 	WaterCost = 10
+	// HarvestXPGain is the XP gained per harvest action
+	HarvestXPGain = 50
 )
 
 var (
@@ -34,7 +36,7 @@ type InvestmentServiceInterface interface {
 	ListCrops(ctx context.Context, userID string, req *request.ListCropsRequest) (*response.ListCropsResponse, error)
 	GetCrop(ctx context.Context, userID, cropID string) (*response.CropResponse, error)
 	WaterCrop(ctx context.Context, userID, cropID string) (*response.WaterCropResponse, error)
-	SyncHarvest(ctx context.Context, userID, walletAddress, cropID string) (*response.CropResponse, error)
+	SyncHarvest(ctx context.Context, userID, walletAddress, cropID string) (*response.SyncHarvestResponse, error)
 }
 
 // InvestmentService implements InvestmentServiceInterface
@@ -287,7 +289,7 @@ func (s *InvestmentService) WaterCrop(ctx context.Context, userID, cropID string
 }
 
 // SyncHarvest syncs harvest status from blockchain
-func (s *InvestmentService) SyncHarvest(ctx context.Context, userID, walletAddress, cropID string) (*response.CropResponse, error) {
+func (s *InvestmentService) SyncHarvest(ctx context.Context, userID, walletAddress, cropID string) (*response.SyncHarvestResponse, error) {
 	investment, err := s.investmentRepo.GetByIDAndUserID(cropID, userID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -296,9 +298,13 @@ func (s *InvestmentService) SyncHarvest(ctx context.Context, userID, walletAddre
 		return nil, err
 	}
 
+	// Already harvested - return with 0 XP (no double XP)
 	if investment.IsHarvested {
 		resp := s.toCropResponse(investment)
-		return &resp, nil
+		return &response.SyncHarvestResponse{
+			Crop:     resp,
+			XPGained: 0,
+		}, nil
 	}
 
 	// Check blockchain for harvest status
@@ -311,6 +317,7 @@ func (s *InvestmentService) SyncHarvest(ctx context.Context, userID, walletAddre
 		return nil, err
 	}
 
+	xpGained := 0
 	if onchainInv.Claimed {
 		// Update harvest status
 		now := time.Now()
@@ -327,10 +334,27 @@ func (s *InvestmentService) SyncHarvest(ctx context.Context, userID, walletAddre
 		if err := s.investmentRepo.Update(investment); err != nil {
 			return nil, err
 		}
+
+		// Add XP to user profile
+		user, err := s.userRepo.GetByID(userID)
+		if err != nil {
+			return nil, err
+		}
+		newXP := user.XP + HarvestXPGain
+		err = s.userRepo.UpdateGameStats(userID, map[string]interface{}{
+			"xp": newXP,
+		})
+		if err != nil {
+			return nil, err
+		}
+		xpGained = HarvestXPGain
 	}
 
 	resp := s.toCropResponse(investment)
-	return &resp, nil
+	return &response.SyncHarvestResponse{
+		Crop:     resp,
+		XPGained: xpGained,
+	}, nil
 }
 
 // calculateProgressAndStatus calculates progress and status based on time

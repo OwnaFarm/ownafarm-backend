@@ -434,14 +434,31 @@ Sinkronisasi status harvest dari blockchain setelah user melakukan `harvest()` d
 
 ```json
 {
-  "id": "550e8400-e29b-41d4-a716-446655440000",
-  "name": "Cabai Indofood",
-  ...
-  "status": "harvested",
-  "can_harvest": false,
-  "harvest_amount": 1185.0
+  "crop": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "name": "Cabai Indofood",
+    "image": "https://storage.ownafarm.com/crops/cabai.png",
+    "cctv_image": "https://storage.ownafarm.com/cctv/farm1.jpg",
+    "location": "Malang, Jawa Timur",
+    "progress": 100,
+    "days_left": 0,
+    "yield_percent": 18.5,
+    "invested": 1000.0,
+    "status": "harvested",
+    "planted_at": "2026-01-10T10:00:00Z",
+    "water_count": 10,
+    "can_harvest": false,
+    "harvest_amount": 1185.0
+  },
+  "xp_gained": 50
 }
 ```
+
+### XP Mechanic
+
+- User mendapat **50 XP** per harvest
+- XP hanya diberikan **sekali** saat harvest pertama kali di-sync
+- Jika crop sudah berstatus `harvested`, `xp_gained` akan bernilai `0`
 
 ---
 

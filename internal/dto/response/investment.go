@@ -41,6 +41,12 @@ type WaterCropResponse struct {
 	WaterRemaining int          `json:"water_remaining"` // User's remaining water points
 }
 
+// SyncHarvestResponse represents the response after syncing harvest status
+type SyncHarvestResponse struct {
+	Crop     CropResponse `json:"crop"`
+	XPGained int          `json:"xp_gained"`
+}
+
 // UserGameStats represents user's game statistics (for sync response)
 type UserGameStats struct {
 	Level       int        `json:"level"`
