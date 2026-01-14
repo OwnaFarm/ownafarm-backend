@@ -26,11 +26,14 @@ func (AdminAuditLog) TableName() string {
 
 // Audit log action constants
 const (
-	AuditActionApproveFarmer = "approve_farmer"
-	AuditActionRejectFarmer  = "reject_farmer"
+	AuditActionApproveFarmer  = "approve_farmer"
+	AuditActionRejectFarmer   = "reject_farmer"
+	AuditActionApproveInvoice = "approve_invoice"
+	AuditActionRejectInvoice  = "reject_invoice"
 )
 
 // Audit log entity type constants
 const (
-	AuditEntityTypeFarmer = "farmer"
+	AuditEntityTypeFarmer  = "farmer"
+	AuditEntityTypeInvoice = "invoice"
 )

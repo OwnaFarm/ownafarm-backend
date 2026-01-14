@@ -19,6 +19,7 @@ type FarmerFilter struct {
 type FarmerRepository interface {
 	Create(farmer *models.Farmer) error
 	GetByID(id string) (*models.Farmer, error)
+	GetByUserID(userID string) (*models.Farmer, error)
 	GetByEmail(email string) (*models.Farmer, error)
 	ExistsByEmailOrPhone(email, phone string) (bool, error)
 	CreateDocuments(documents []models.FarmerDocument) error
@@ -154,4 +155,13 @@ func (r *farmerRepository) GetAllWithPagination(filter FarmerFilter) ([]models.F
 // Update updates an existing farmer record
 func (r *farmerRepository) Update(farmer *models.Farmer) error {
 	return r.db.Save(farmer).Error
+}
+
+// GetByUserID retrieves a farmer by user ID
+func (r *farmerRepository) GetByUserID(userID string) (*models.Farmer, error) {
+	var farmer models.Farmer
+	if err := r.db.First(&farmer, "user_id = ?", userID).Error; err != nil {
+		return nil, err
+	}
+	return &farmer, nil
 }

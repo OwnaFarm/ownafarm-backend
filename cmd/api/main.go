@@ -69,9 +69,13 @@ func main() {
 	farmerRepo := repositories.NewFarmerRepository(database.DB)
 	adminUserRepo := repositories.NewAdminUserRepository(database.DB)
 	auditLogRepo := repositories.NewAuditLogRepository(database.DB)
+	farmRepo := repositories.NewFarmRepository(database.DB)
+	invoiceRepo := repositories.NewInvoiceRepository(database.DB)
 
 	// 9. Initialize Farmer Service
 	farmerService := services.NewFarmerService(farmerRepo, storageService, auditLogRepo)
+	farmService := services.NewFarmService(farmRepo)
+	invoiceService := services.NewInvoiceService(invoiceRepo, farmRepo, storageService, auditLogRepo)
 	adminAuthService := services.NewAdminAuthService(
 		adminUserRepo,
 		rateLimitService,
@@ -86,13 +90,27 @@ func main() {
 	authHandler := handlers.NewAuthHandler(userRepo, nonceService, authService, jwtUtil)
 	farmerHandler := handlers.NewFarmerHandler(farmerService)
 	adminAuthHandler := handlers.NewAdminAuthHandler(adminAuthService)
+	farmHandler := handlers.NewFarmHandler(farmService)
+	invoiceHandler := handlers.NewInvoiceHandler(invoiceService)
 
 	// 11. Initialize Middleware
 	authMiddleware := middleware.NewAuthMiddleware(jwtUtil)
 	adminAuthMiddleware := middleware.NewAdminAuthMiddleware(adminJwtUtil)
+	farmerAuthMiddleware := middleware.NewFarmerAuthMiddleware(authMiddleware, farmerRepo)
 
 	// 12. Routes
-	routes.SetupRoutes(router, userHandler, authHandler, farmerHandler, adminAuthHandler, authMiddleware, adminAuthMiddleware)
+	routes.SetupRoutes(
+		router,
+		userHandler,
+		authHandler,
+		farmerHandler,
+		adminAuthHandler,
+		farmHandler,
+		invoiceHandler,
+		authMiddleware,
+		adminAuthMiddleware,
+		farmerAuthMiddleware,
+	)
 
 	// 13. Run the server
 	err = router.Run(":" + cfg.App.Port)

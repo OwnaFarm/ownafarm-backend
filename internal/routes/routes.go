@@ -14,8 +14,11 @@ func SetupRoutes(
 	authHandler *handlers.AuthHandler,
 	farmerHandler *handlers.FarmerHandler,
 	adminAuthHandler *handlers.AdminAuthHandler,
+	farmHandler *handlers.FarmHandler,
+	invoiceHandler *handlers.InvoiceHandler,
 	authMiddleware *middleware.AuthMiddleware,
 	adminAuthMiddleware *middleware.AdminAuthMiddleware,
+	farmerAuthMiddleware *middleware.FarmerAuthMiddleware,
 ) {
 	router.GET("/", func(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, gin.H{
@@ -57,8 +60,33 @@ func SetupRoutes(
 	admin := router.Group("/admin")
 	admin.Use(adminAuthMiddleware.AdminAuthRequired())
 	{
+		// Farmer management
 		admin.GET("/farmers", farmerHandler.GetListForAdmin)
 		admin.PATCH("/farmers/:id/approve", farmerHandler.ApproveFarmer)
 		admin.PATCH("/farmers/:id/reject", farmerHandler.RejectFarmer)
+
+		// Invoice management
+		admin.GET("/invoices", invoiceHandler.ListForAdmin)
+		admin.GET("/invoices/:id", invoiceHandler.GetByIDForAdmin)
+		admin.PATCH("/invoices/:id/approve", invoiceHandler.ApproveInvoice)
+		admin.PATCH("/invoices/:id/reject", invoiceHandler.RejectInvoice)
+	}
+
+	// Farmer routes (requires farmer auth - approved farmers only)
+	farmer := router.Group("/farmer")
+	farmer.Use(farmerAuthMiddleware.FarmerAuthRequired())
+	{
+		// Farm management
+		farmer.POST("/farms", farmHandler.Create)
+		farmer.GET("/farms", farmHandler.List)
+		farmer.GET("/farms/:id", farmHandler.GetByID)
+		farmer.PUT("/farms/:id", farmHandler.Update)
+		farmer.DELETE("/farms/:id", farmHandler.Delete)
+
+		// Invoice management
+		farmer.POST("/invoices", invoiceHandler.Create)
+		farmer.GET("/invoices", invoiceHandler.List)
+		farmer.GET("/invoices/:id", invoiceHandler.GetByID)
+		farmer.POST("/invoices/image/presign", invoiceHandler.GetPresignedImageURL)
 	}
 }

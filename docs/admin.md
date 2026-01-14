@@ -264,3 +264,253 @@ Content-Type: application/json
 - `404` - Farmer not found
 - `409` - Farmer has already been processed (not in pending status)
 - `500` - Internal server error
+
+---
+
+## 3. Invoice Management
+
+Admin dapat melihat dan memverifikasi invoice (pengajuan proyek pendanaan) dari farmer sebelum ditampilkan di Shop untuk investor.
+
+### Invoice Status
+
+| Status | Description |
+|--------|-------------|
+| `pending` | Menunggu review admin |
+| `approved` | Disetujui, akan muncul di Shop investor |
+| `rejected` | Ditolak oleh admin |
+
+### 3.1 Get Invoices List
+
+Mendapatkan list invoices dengan filtering, pagination, dan sorting.
+
+| Method | Endpoint | Auth |
+|--------|----------|------|
+| `GET` | `/admin/invoices` | ✅ Admin |
+
+**Header Required:** `Authorization: Bearer {token}`
+
+**Query Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `status` | array | ❌ | all | Filter status (bisa multiple): `pending`, `approved`, `rejected` |
+| `page` | int | ❌ | 1 | Page number |
+| `limit` | int | ❌ | 10 | Items per page (max 100) |
+| `sort_by` | string | ❌ | `created_at` | Field sorting: `created_at`, `name`, `target_fund`, `status` |
+| `sort_order` | string | ❌ | `desc` | Urutan sorting: `asc`, `desc` |
+| `search` | string | ❌ | - | Search di name |
+
+**Example:**
+```bash
+GET /admin/invoices?status=pending&page=1&limit=20
+Authorization: Bearer {token}
+```
+
+**Response (200):**
+```json
+{
+  "status": "success",
+  "data": {
+    "invoices": [
+      {
+        "id": "i1a2b3c4-d5e6-7890-abcd-ef1234567890",
+        "farm_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "farm_name": "Kebun Cabai Ciwidey",
+        "farmer_id": "f1a2b3c4-d5e6-7890-abcd-ef1234567890",
+        "farmer_name": "Budi Santoso",
+        "name": "Cabai Rawit Merah - Batch 1",
+        "image_url": "invoices/images/uuid-cabai-rawit.jpg",
+        "target_fund": 50000000,
+        "yield_percent": 18.5,
+        "duration_days": 90,
+        "total_funded": 0,
+        "is_fully_funded": false,
+        "status": "pending",
+        "created_at": "2024-01-15T10:30:00Z",
+        "reviewed_at": null
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 10,
+      "total_items": 42,
+      "total_pages": 5
+    }
+  }
+}
+```
+
+**Errors:**
+- `400` - Invalid query
+- `401` - Unauthorized
+- `500` - Internal server error
+
+### 3.2 Get Invoice Detail
+
+Mendapatkan detail invoice berdasarkan ID.
+
+| Method | Endpoint | Auth |
+|--------|----------|------|
+| `GET` | `/admin/invoices/:id` | ✅ Admin |
+
+**Header Required:** `Authorization: Bearer {token}`
+
+**URL Parameters:**
+- `id` (required) - Invoice ID (UUID)
+
+**Example:**
+```bash
+GET /admin/invoices/i1a2b3c4-d5e6-7890-abcd-ef1234567890
+Authorization: Bearer {token}
+```
+
+**Response (200):**
+```json
+{
+  "status": "success",
+  "data": {
+    "invoice": {
+      "id": "i1a2b3c4-d5e6-7890-abcd-ef1234567890",
+      "farm_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "farm_name": "Kebun Cabai Ciwidey",
+      "token_id": null,
+      "offtaker_id": "indofood-001",
+      "name": "Cabai Rawit Merah - Batch 1",
+      "description": "Proyek penanaman cabai rawit merah untuk kebutuhan Indofood.",
+      "image_url": "invoices/images/uuid-cabai-rawit.jpg",
+      "target_fund": 50000000,
+      "yield_percent": 18.5,
+      "duration_days": 90,
+      "total_funded": 0,
+      "is_fully_funded": false,
+      "status": "pending",
+      "rejection_reason": null,
+      "reviewed_by": null,
+      "reviewed_at": null,
+      "approved_at": null,
+      "funding_deadline": null,
+      "maturity_date": null,
+      "approval_tx_hash": null,
+      "created_at": "2024-01-15T10:30:00Z",
+      "updated_at": "2024-01-15T10:30:00Z"
+    }
+  }
+}
+```
+
+**Errors:**
+- `401` - Unauthorized
+- `404` - Invoice not found
+- `500` - Internal server error
+
+### 3.3 Approve Invoice
+
+Approve invoice yang statusnya `pending`. Status akan berubah menjadi `approved` dan invoice akan muncul di Shop untuk investor.
+
+| Method | Endpoint | Auth |
+|--------|----------|------|
+| `PATCH` | `/admin/invoices/:id/approve` | ✅ Admin |
+
+**Header Required:** `Authorization: Bearer {token}`
+
+**URL Parameters:**
+- `id` (required) - Invoice ID (UUID)
+
+**Request Body:** Tidak diperlukan.
+
+**Example:**
+```bash
+PATCH /admin/invoices/i1a2b3c4-d5e6-7890-abcd-ef1234567890/approve
+Authorization: Bearer {token}
+```
+
+**Response (200):**
+```json
+{
+  "status": "success",
+  "data": {
+    "invoice_id": "i1a2b3c4-d5e6-7890-abcd-ef1234567890",
+    "status": "approved",
+    "reviewed_by": "admin-uuid",
+    "reviewed_at": "2024-01-16T09:00:00Z"
+  }
+}
+```
+
+**Errors:**
+- `400` - Invoice ID is required
+- `401` - Unauthorized
+- `404` - Invoice not found
+- `409` - Invoice has already been processed (not in pending status)
+- `500` - Internal server error
+
+### 3.4 Reject Invoice
+
+Reject invoice yang statusnya `pending`. Status akan berubah menjadi `rejected`.
+
+| Method | Endpoint | Auth |
+|--------|----------|------|
+| `PATCH` | `/admin/invoices/:id/reject` | ✅ Admin |
+
+**Header Required:** `Authorization: Bearer {token}`
+
+**URL Parameters:**
+- `id` (required) - Invoice ID (UUID)
+
+**Request Body:**
+```json
+{
+  "reason": "Target pendanaan tidak realistis untuk luas lahan yang tersedia."
+}
+```
+
+**Field Details:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `reason` | string | ❌ | Alasan penolakan |
+
+**Example:**
+```bash
+PATCH /admin/invoices/i1a2b3c4-d5e6-7890-abcd-ef1234567890/reject
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "reason": "Target pendanaan tidak realistis"
+}
+```
+
+**Response (200):**
+```json
+{
+  "status": "success",
+  "data": {
+    "invoice_id": "i1a2b3c4-d5e6-7890-abcd-ef1234567890",
+    "status": "rejected",
+    "reviewed_by": "admin-uuid",
+    "reviewed_at": "2024-01-16T09:00:00Z",
+    "reason": "Target pendanaan tidak realistis"
+  }
+}
+```
+
+**Errors:**
+- `400` - Invoice ID is required
+- `401` - Unauthorized
+- `404` - Invoice not found
+- `409` - Invoice has already been processed (not in pending status)
+- `500` - Internal server error
+
+---
+
+## Audit Logging
+
+Semua aksi admin (approve/reject farmer dan invoice) dicatat dalam audit log dengan informasi:
+- Admin ID
+- Action type (`approve_farmer`, `reject_farmer`, `approve_invoice`, `reject_invoice`)
+- Entity type dan ID
+- Old values dan new values (JSON)
+- IP address
+- User agent
+- Timestamp

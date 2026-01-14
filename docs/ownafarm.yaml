@@ -15,8 +15,14 @@ tags:
     description: Autentikasi admin menggunakan wallet signature
   - name: Admin Farmer Management
     description: Manajemen farmer oleh admin
+  - name: Admin Invoice Management
+    description: Manajemen invoice oleh admin
   - name: Farmer Registration
     description: Registrasi petani dengan upload dokumen
+  - name: Farmer Farm Management
+    description: Manajemen kebun oleh farmer (authenticated)
+  - name: Farmer Invoice Management
+    description: Manajemen invoice oleh farmer (authenticated)
 
 paths:
   # ==================== USER AUTHENTICATION ====================
@@ -660,6 +666,1002 @@ paths:
                 status: error
                 message: Failed to register farmer
 
+  # ==================== FARMER FARM MANAGEMENT ====================
+  /farmer/farms:
+    post:
+      summary: Create Farm
+      description: Membuat kebun baru untuk farmer yang sudah approved.
+      operationId: createFarm
+      tags:
+        - Farmer Farm Management
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFarmRequest'
+      responses:
+        '201':
+          description: Farm berhasil dibuat
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: object
+                    properties:
+                      farm:
+                        $ref: '#/components/schemas/Farm'
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Invalid request body
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Unauthorized
+        '403':
+          description: Farmer not approved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Farmer profile is not approved
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Internal server error
+
+    get:
+      summary: List My Farms
+      description: Mendapatkan list kebun milik farmer yang sedang login.
+      operationId: listMyFarms
+      tags:
+        - Farmer Farm Management
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: is_active
+          in: query
+          required: false
+          description: Filter berdasarkan status aktif
+          schema:
+            type: boolean
+        - name: page
+          in: query
+          required: false
+          description: Page number
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          required: false
+          description: Items per page (max 100)
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+        - name: sort_by
+          in: query
+          required: false
+          description: Field untuk sorting
+          schema:
+            type: string
+            enum:
+              - created_at
+              - name
+              - location
+              - land_area
+            default: created_at
+        - name: sort_order
+          in: query
+          required: false
+          description: Urutan sorting
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+            default: desc
+        - name: search
+          in: query
+          required: false
+          description: Search di name, location
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List farms berhasil diambil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    $ref: '#/components/schemas/FarmsListResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Unauthorized
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Internal server error
+
+  /farmer/farms/{id}:
+    get:
+      summary: Get Farm Detail
+      description: Mendapatkan detail kebun berdasarkan ID.
+      operationId: getFarmDetail
+      tags:
+        - Farmer Farm Management
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Farm ID (UUID)
+          schema:
+            type: string
+            format: uuid
+            example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+      responses:
+        '200':
+          description: Farm detail berhasil diambil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: object
+                    properties:
+                      farm:
+                        $ref: '#/components/schemas/Farm'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Unauthorized
+        '404':
+          description: Farm not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Farm not found
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Internal server error
+
+    put:
+      summary: Update Farm
+      description: Mengupdate data kebun.
+      operationId: updateFarm
+      tags:
+        - Farmer Farm Management
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Farm ID (UUID)
+          schema:
+            type: string
+            format: uuid
+            example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateFarmRequest'
+      responses:
+        '200':
+          description: Farm berhasil diupdate
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: object
+                    properties:
+                      farm:
+                        $ref: '#/components/schemas/Farm'
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Invalid request body
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Unauthorized
+        '404':
+          description: Farm not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Farm not found
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Internal server error
+
+    delete:
+      summary: Delete Farm (Soft Delete)
+      description: Menonaktifkan kebun (soft delete - set is_active = false).
+      operationId: deleteFarm
+      tags:
+        - Farmer Farm Management
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Farm ID (UUID)
+          schema:
+            type: string
+            format: uuid
+            example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+      responses:
+        '200':
+          description: Farm berhasil di-delete
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Farm deleted successfully
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Unauthorized
+        '404':
+          description: Farm not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Farm not found
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Internal server error
+
+  # ==================== FARMER INVOICE MANAGEMENT ====================
+  /farmer/invoices/image/presign:
+    post:
+      summary: Get Presigned URL for Invoice Image
+      description: Mendapatkan presigned URL untuk upload gambar invoice/tanaman.
+      operationId: getInvoiceImagePresignUrl
+      tags:
+        - Farmer Invoice Management
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvoiceImagePresignRequest'
+      responses:
+        '200':
+          description: Presigned URL berhasil dibuat
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    $ref: '#/components/schemas/InvoiceImagePresignResponse'
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Invalid request body
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Unauthorized
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Failed to generate presigned URL
+
+  /farmer/invoices:
+    post:
+      summary: Create Invoice
+      description: Membuat invoice/pengajuan proyek pendanaan baru.
+      operationId: createInvoice
+      tags:
+        - Farmer Invoice Management
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInvoiceRequest'
+      responses:
+        '201':
+          description: Invoice berhasil dibuat
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: object
+                    properties:
+                      invoice:
+                        $ref: '#/components/schemas/Invoice'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidBody:
+                  summary: Request body tidak valid
+                  value:
+                    status: error
+                    message: Invalid request body
+                farmNotActive:
+                  summary: Farm tidak aktif
+                  value:
+                    status: error
+                    message: Farm is not active
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Unauthorized
+        '404':
+          description: Farm not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Farm not found
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Internal server error
+
+    get:
+      summary: List My Invoices
+      description: Mendapatkan list invoice milik farmer yang sedang login.
+      operationId: listMyInvoices
+      tags:
+        - Farmer Invoice Management
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: farm_id
+          in: query
+          required: false
+          description: Filter berdasarkan farm ID
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          required: false
+          description: Filter status invoice (bisa multiple)
+          schema:
+            type: array
+            items:
+              type: string
+              enum:
+                - pending
+                - approved
+                - rejected
+          style: form
+          explode: true
+        - name: page
+          in: query
+          required: false
+          description: Page number
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          required: false
+          description: Items per page (max 100)
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+        - name: sort_by
+          in: query
+          required: false
+          description: Field untuk sorting
+          schema:
+            type: string
+            enum:
+              - created_at
+              - name
+              - target_fund
+              - status
+            default: created_at
+        - name: sort_order
+          in: query
+          required: false
+          description: Urutan sorting
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+            default: desc
+        - name: search
+          in: query
+          required: false
+          description: Search di name
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List invoices berhasil diambil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    $ref: '#/components/schemas/FarmerInvoicesListResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Unauthorized
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Internal server error
+
+  /farmer/invoices/{id}:
+    get:
+      summary: Get Invoice Detail
+      description: Mendapatkan detail invoice berdasarkan ID.
+      operationId: getFarmerInvoiceDetail
+      tags:
+        - Farmer Invoice Management
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Invoice ID (UUID)
+          schema:
+            type: string
+            format: uuid
+            example: i1a2b3c4-d5e6-7890-abcd-ef1234567890
+      responses:
+        '200':
+          description: Invoice detail berhasil diambil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: object
+                    properties:
+                      invoice:
+                        $ref: '#/components/schemas/Invoice'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Unauthorized
+        '404':
+          description: Invoice not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Invoice not found
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Internal server error
+
+  # ==================== ADMIN INVOICE MANAGEMENT ====================
+  /admin/invoices:
+    get:
+      summary: Get Invoices List (Admin)
+      description: Mendapatkan list invoices dengan filtering, pagination, dan sorting.
+      operationId: getAdminInvoices
+      tags:
+        - Admin Invoice Management
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: Filter status invoice (bisa multiple)
+          schema:
+            type: array
+            items:
+              type: string
+              enum:
+                - pending
+                - approved
+                - rejected
+          style: form
+          explode: true
+        - name: page
+          in: query
+          required: false
+          description: Page number
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          required: false
+          description: Items per page (max 100)
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+        - name: sort_by
+          in: query
+          required: false
+          description: Field untuk sorting
+          schema:
+            type: string
+            enum:
+              - created_at
+              - name
+              - target_fund
+              - status
+            default: created_at
+        - name: sort_order
+          in: query
+          required: false
+          description: Urutan sorting
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+            default: desc
+        - name: search
+          in: query
+          required: false
+          description: Search di name
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List invoices berhasil diambil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    $ref: '#/components/schemas/AdminInvoicesListResponse'
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Invalid query parameters
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Unauthorized
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Internal server error
+
+  /admin/invoices/{id}:
+    get:
+      summary: Get Invoice Detail (Admin)
+      description: Mendapatkan detail invoice berdasarkan ID.
+      operationId: getAdminInvoiceDetail
+      tags:
+        - Admin Invoice Management
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Invoice ID (UUID)
+          schema:
+            type: string
+            format: uuid
+            example: i1a2b3c4-d5e6-7890-abcd-ef1234567890
+      responses:
+        '200':
+          description: Invoice detail berhasil diambil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: object
+                    properties:
+                      invoice:
+                        $ref: '#/components/schemas/AdminInvoiceDetail'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Unauthorized
+        '404':
+          description: Invoice not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Invoice not found
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Internal server error
+
+  /admin/invoices/{id}/approve:
+    patch:
+      summary: Approve Invoice
+      description: >-
+        Approve invoice yang statusnya pending. Status akan berubah menjadi approved
+        dan invoice akan muncul di Shop untuk investor.
+      operationId: approveInvoice
+      tags:
+        - Admin Invoice Management
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Invoice ID (UUID)
+          schema:
+            type: string
+            format: uuid
+            example: i1a2b3c4-d5e6-7890-abcd-ef1234567890
+      responses:
+        '200':
+          description: Invoice berhasil di-approve
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    $ref: '#/components/schemas/InvoiceApproveResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Invoice ID is required
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Unauthorized
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Invoice not found
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Invoice has already been processed (not in pending status)
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Internal server error
+
+  /admin/invoices/{id}/reject:
+    patch:
+      summary: Reject Invoice
+      description: >-
+        Reject invoice yang statusnya pending. Status akan berubah menjadi rejected.
+      operationId: rejectInvoice
+      tags:
+        - Admin Invoice Management
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Invoice ID (UUID)
+          schema:
+            type: string
+            format: uuid
+            example: i1a2b3c4-d5e6-7890-abcd-ef1234567890
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvoiceRejectRequest'
+      responses:
+        '200':
+          description: Invoice berhasil di-reject
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    $ref: '#/components/schemas/InvoiceRejectResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Invoice ID is required
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Unauthorized
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Invoice not found
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Invoice has already been processed (not in pending status)
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Internal server error
+
 components:
   securitySchemes:
     BearerAuth:
@@ -1193,6 +2195,770 @@ components:
             - rejected
             - suspended
           example: pending
+
+    # ==================== FARM SCHEMAS ====================
+    CreateFarmRequest:
+      type: object
+      required:
+        - name
+        - location
+      properties:
+        name:
+          type: string
+          maxLength: 200
+          description: Nama kebun
+          example: Kebun Cabai Ciwidey
+        description:
+          type: string
+          description: Deskripsi kebun
+          example: Kebun cabai rawit merah seluas 2 hektar di dataran tinggi Ciwidey
+        location:
+          type: string
+          maxLength: 255
+          description: Alamat/lokasi kebun
+          example: Ciwidey, Bandung, Jawa Barat
+        latitude:
+          type: number
+          format: float
+          minimum: -90
+          maximum: 90
+          description: Koordinat latitude
+          example: -7.1234567
+        longitude:
+          type: number
+          format: float
+          minimum: -180
+          maximum: 180
+          description: Koordinat longitude
+          example: 107.4567890
+        land_area:
+          type: number
+          format: float
+          minimum: 0
+          description: Luas lahan dalam hektar
+          example: 2.5
+
+    UpdateFarmRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 200
+          description: Nama kebun
+          example: Kebun Cabai Ciwidey Updated
+        description:
+          type: string
+          description: Deskripsi baru
+          example: Deskripsi baru
+        location:
+          type: string
+          maxLength: 255
+          description: Lokasi baru
+          example: Lokasi baru
+        latitude:
+          type: number
+          format: float
+          minimum: -90
+          maximum: 90
+          description: Koordinat latitude
+          example: -7.1234567
+        longitude:
+          type: number
+          format: float
+          minimum: -180
+          maximum: 180
+          description: Koordinat longitude
+          example: 107.4567890
+        land_area:
+          type: number
+          format: float
+          minimum: 0
+          description: Luas lahan dalam hektar
+          example: 3.0
+        cctv_url:
+          type: string
+          format: uri
+          description: URL CCTV stream
+          example: rtsp://camera.example.com/stream
+        cctv_image_url:
+          type: string
+          format: uri
+          description: URL snapshot CCTV
+          example: https://storage.example.com/cctv/snapshot.jpg
+
+    Farm:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: UUID farm
+          example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        farmer_id:
+          type: string
+          format: uuid
+          description: UUID farmer pemilik
+          example: f1a2b3c4-d5e6-7890-abcd-ef1234567890
+        name:
+          type: string
+          description: Nama kebun
+          example: Kebun Cabai Ciwidey
+        description:
+          type: string
+          nullable: true
+          description: Deskripsi kebun
+          example: Kebun cabai rawit merah seluas 2 hektar di dataran tinggi Ciwidey
+        location:
+          type: string
+          description: Alamat/lokasi kebun
+          example: Ciwidey, Bandung, Jawa Barat
+        latitude:
+          type: number
+          format: float
+          nullable: true
+          description: Koordinat latitude
+          example: -7.1234567
+        longitude:
+          type: number
+          format: float
+          nullable: true
+          description: Koordinat longitude
+          example: 107.4567890
+        land_area:
+          type: number
+          format: float
+          nullable: true
+          description: Luas lahan dalam hektar
+          example: 2.5
+        cctv_url:
+          type: string
+          format: uri
+          nullable: true
+          description: URL CCTV stream
+          example: rtsp://camera.example.com/stream
+        cctv_image_url:
+          type: string
+          format: uri
+          nullable: true
+          description: URL snapshot CCTV
+          example: https://storage.example.com/cctv/snapshot.jpg
+        cctv_last_updated:
+          type: string
+          format: date-time
+          nullable: true
+          description: Waktu terakhir update CCTV
+          example: '2024-01-15T14:00:00Z'
+        is_active:
+          type: boolean
+          description: Status aktif kebun
+          example: true
+        created_at:
+          type: string
+          format: date-time
+          description: Waktu dibuat
+          example: '2024-01-15T10:30:00Z'
+        updated_at:
+          type: string
+          format: date-time
+          description: Waktu update terakhir
+          example: '2024-01-15T10:30:00Z'
+
+    FarmListItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: UUID farm
+          example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        name:
+          type: string
+          description: Nama kebun
+          example: Kebun Cabai Ciwidey
+        location:
+          type: string
+          description: Lokasi kebun
+          example: Ciwidey, Bandung, Jawa Barat
+        land_area:
+          type: number
+          format: float
+          nullable: true
+          description: Luas lahan dalam hektar
+          example: 2.5
+        is_active:
+          type: boolean
+          description: Status aktif
+          example: true
+        created_at:
+          type: string
+          format: date-time
+          description: Waktu dibuat
+          example: '2024-01-15T10:30:00Z'
+
+    FarmsListResponse:
+      type: object
+      properties:
+        farms:
+          type: array
+          items:
+            $ref: '#/components/schemas/FarmListItem'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    # ==================== INVOICE SCHEMAS ====================
+    InvoiceImagePresignRequest:
+      type: object
+      required:
+        - file_name
+        - content_type
+      properties:
+        file_name:
+          type: string
+          description: Nama file gambar
+          example: cabai-rawit.jpg
+        content_type:
+          type: string
+          description: MIME type gambar
+          enum:
+            - image/jpeg
+            - image/png
+            - image/webp
+          example: image/jpeg
+
+    InvoiceImagePresignResponse:
+      type: object
+      properties:
+        upload_url:
+          type: string
+          format: uri
+          description: Presigned URL untuk upload
+          example: https://s3.amazonaws.com/bucket/invoices/images/uuid-cabai.jpg?signature=...
+        file_key:
+          type: string
+          description: File key untuk digunakan saat create invoice
+          example: invoices/images/uuid-cabai-rawit.jpg
+
+    CreateInvoiceRequest:
+      type: object
+      required:
+        - farm_id
+        - name
+        - target_fund
+        - yield_percent
+        - duration_days
+      properties:
+        farm_id:
+          type: string
+          format: uuid
+          description: ID kebun yang akan digunakan
+          example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        name:
+          type: string
+          maxLength: 200
+          description: 'Nama proyek/tanaman (misal: "Cabai Indofood")'
+          example: Cabai Rawit Merah - Batch 1
+        description:
+          type: string
+          description: Deskripsi proyek
+          example: Proyek penanaman cabai rawit merah untuk kebutuhan Indofood. Target panen 3 bulan.
+        image_key:
+          type: string
+          description: File key dari presigned upload (gambar tanaman untuk game)
+          example: invoices/images/uuid-cabai-rawit.jpg
+        target_fund:
+          type: number
+          format: float
+          minimum: 0
+          exclusiveMinimum: true
+          description: Target pendanaan dalam GOLD
+          example: 50000000
+        yield_percent:
+          type: number
+          format: float
+          minimum: 0
+          exclusiveMinimum: true
+          maximum: 100
+          description: 'Persentase return (misal: 18.5%)'
+          example: 18.5
+        duration_days:
+          type: integer
+          minimum: 1
+          description: Durasi sampai panen/maturity dalam hari
+          example: 90
+        offtaker_id:
+          type: string
+          maxLength: 100
+          description: ID offtaker/pembeli (optional)
+          example: indofood-001
+
+    Invoice:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: UUID invoice
+          example: i1a2b3c4-d5e6-7890-abcd-ef1234567890
+        farm_id:
+          type: string
+          format: uuid
+          description: UUID farm
+          example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        farm_name:
+          type: string
+          description: Nama kebun
+          example: Kebun Cabai Ciwidey
+        token_id:
+          type: integer
+          nullable: true
+          description: Token ID on-chain (null jika belum approved)
+          example: 12345
+        offtaker_id:
+          type: string
+          nullable: true
+          description: ID offtaker/pembeli
+          example: indofood-001
+        name:
+          type: string
+          description: Nama proyek
+          example: Cabai Rawit Merah - Batch 1
+        description:
+          type: string
+          nullable: true
+          description: Deskripsi proyek
+          example: Proyek penanaman cabai rawit merah untuk kebutuhan Indofood.
+        image_url:
+          type: string
+          nullable: true
+          description: URL gambar invoice
+          example: invoices/images/uuid-cabai-rawit.jpg
+        target_fund:
+          type: number
+          format: float
+          description: Target pendanaan dalam GOLD
+          example: 50000000
+        yield_percent:
+          type: number
+          format: float
+          description: Persentase return
+          example: 18.5
+        duration_days:
+          type: integer
+          description: Durasi sampai panen/maturity dalam hari
+          example: 90
+        total_funded:
+          type: number
+          format: float
+          description: Total dana yang sudah terkumpul
+          example: 25000000
+        is_fully_funded:
+          type: boolean
+          description: Apakah sudah fully funded
+          example: false
+        status:
+          type: string
+          description: Status invoice
+          enum:
+            - pending
+            - approved
+            - rejected
+          example: pending
+        rejection_reason:
+          type: string
+          nullable: true
+          description: Alasan penolakan (jika rejected)
+          example: null
+        reviewed_by:
+          type: string
+          format: uuid
+          nullable: true
+          description: UUID admin yang review
+          example: null
+        reviewed_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Waktu review
+          example: null
+        approved_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Waktu approve
+          example: null
+        funding_deadline:
+          type: string
+          format: date-time
+          nullable: true
+          description: Deadline pendanaan
+          example: null
+        maturity_date:
+          type: string
+          format: date-time
+          nullable: true
+          description: Tanggal jatuh tempo
+          example: null
+        approval_tx_hash:
+          type: string
+          nullable: true
+          description: Transaction hash on-chain approval
+          example: null
+        created_at:
+          type: string
+          format: date-time
+          description: Waktu dibuat
+          example: '2024-01-15T10:30:00Z'
+        updated_at:
+          type: string
+          format: date-time
+          description: Waktu update terakhir
+          example: '2024-01-15T10:30:00Z'
+
+    InvoiceListItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: UUID invoice
+          example: i1a2b3c4-d5e6-7890-abcd-ef1234567890
+        farm_id:
+          type: string
+          format: uuid
+          description: UUID farm
+          example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        farm_name:
+          type: string
+          description: Nama kebun
+          example: Kebun Cabai Ciwidey
+        name:
+          type: string
+          description: Nama proyek
+          example: Cabai Rawit Merah - Batch 1
+        image_url:
+          type: string
+          nullable: true
+          description: URL gambar invoice
+          example: invoices/images/uuid-cabai-rawit.jpg
+        target_fund:
+          type: number
+          format: float
+          description: Target pendanaan
+          example: 50000000
+        yield_percent:
+          type: number
+          format: float
+          description: Persentase return
+          example: 18.5
+        duration_days:
+          type: integer
+          description: Durasi dalam hari
+          example: 90
+        total_funded:
+          type: number
+          format: float
+          description: Total dana terkumpul
+          example: 0
+        is_fully_funded:
+          type: boolean
+          description: Status fully funded
+          example: false
+        status:
+          type: string
+          description: Status invoice
+          enum:
+            - pending
+            - approved
+            - rejected
+          example: pending
+        created_at:
+          type: string
+          format: date-time
+          description: Waktu dibuat
+          example: '2024-01-15T10:30:00Z'
+
+    FarmerInvoicesListResponse:
+      type: object
+      properties:
+        invoices:
+          type: array
+          items:
+            $ref: '#/components/schemas/InvoiceListItem'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    AdminInvoiceListItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: UUID invoice
+          example: i1a2b3c4-d5e6-7890-abcd-ef1234567890
+        farm_id:
+          type: string
+          format: uuid
+          description: UUID farm
+          example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        farm_name:
+          type: string
+          description: Nama kebun
+          example: Kebun Cabai Ciwidey
+        farmer_id:
+          type: string
+          format: uuid
+          description: UUID farmer
+          example: f1a2b3c4-d5e6-7890-abcd-ef1234567890
+        farmer_name:
+          type: string
+          description: Nama farmer
+          example: Budi Santoso
+        name:
+          type: string
+          description: Nama proyek
+          example: Cabai Rawit Merah - Batch 1
+        image_url:
+          type: string
+          nullable: true
+          description: URL gambar invoice
+          example: invoices/images/uuid-cabai-rawit.jpg
+        target_fund:
+          type: number
+          format: float
+          description: Target pendanaan
+          example: 50000000
+        yield_percent:
+          type: number
+          format: float
+          description: Persentase return
+          example: 18.5
+        duration_days:
+          type: integer
+          description: Durasi dalam hari
+          example: 90
+        total_funded:
+          type: number
+          format: float
+          description: Total dana terkumpul
+          example: 0
+        is_fully_funded:
+          type: boolean
+          description: Status fully funded
+          example: false
+        status:
+          type: string
+          description: Status invoice
+          enum:
+            - pending
+            - approved
+            - rejected
+          example: pending
+        created_at:
+          type: string
+          format: date-time
+          description: Waktu dibuat
+          example: '2024-01-15T10:30:00Z'
+        reviewed_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Waktu review
+          example: null
+
+    AdminInvoicesListResponse:
+      type: object
+      properties:
+        invoices:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminInvoiceListItem'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    AdminInvoiceDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: UUID invoice
+          example: i1a2b3c4-d5e6-7890-abcd-ef1234567890
+        farm_id:
+          type: string
+          format: uuid
+          description: UUID farm
+          example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        farm_name:
+          type: string
+          description: Nama kebun
+          example: Kebun Cabai Ciwidey
+        token_id:
+          type: integer
+          nullable: true
+          description: Token ID on-chain
+          example: null
+        offtaker_id:
+          type: string
+          nullable: true
+          description: ID offtaker
+          example: indofood-001
+        name:
+          type: string
+          description: Nama proyek
+          example: Cabai Rawit Merah - Batch 1
+        description:
+          type: string
+          nullable: true
+          description: Deskripsi proyek
+          example: Proyek penanaman cabai rawit merah untuk kebutuhan Indofood.
+        image_url:
+          type: string
+          nullable: true
+          description: URL gambar invoice
+          example: invoices/images/uuid-cabai-rawit.jpg
+        target_fund:
+          type: number
+          format: float
+          description: Target pendanaan
+          example: 50000000
+        yield_percent:
+          type: number
+          format: float
+          description: Persentase return
+          example: 18.5
+        duration_days:
+          type: integer
+          description: Durasi dalam hari
+          example: 90
+        total_funded:
+          type: number
+          format: float
+          description: Total dana terkumpul
+          example: 0
+        is_fully_funded:
+          type: boolean
+          description: Status fully funded
+          example: false
+        status:
+          type: string
+          description: Status invoice
+          enum:
+            - pending
+            - approved
+            - rejected
+          example: pending
+        rejection_reason:
+          type: string
+          nullable: true
+          description: Alasan penolakan
+          example: null
+        reviewed_by:
+          type: string
+          format: uuid
+          nullable: true
+          description: UUID admin reviewer
+          example: null
+        reviewed_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Waktu review
+          example: null
+        approved_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Waktu approve
+          example: null
+        funding_deadline:
+          type: string
+          format: date-time
+          nullable: true
+          description: Deadline pendanaan
+          example: null
+        maturity_date:
+          type: string
+          format: date-time
+          nullable: true
+          description: Tanggal jatuh tempo
+          example: null
+        approval_tx_hash:
+          type: string
+          nullable: true
+          description: Transaction hash on-chain
+          example: null
+        created_at:
+          type: string
+          format: date-time
+          description: Waktu dibuat
+          example: '2024-01-15T10:30:00Z'
+        updated_at:
+          type: string
+          format: date-time
+          description: Waktu update terakhir
+          example: '2024-01-15T10:30:00Z'
+
+    InvoiceApproveResponse:
+      type: object
+      properties:
+        invoice_id:
+          type: string
+          format: uuid
+          description: UUID invoice yang di-approve
+          example: i1a2b3c4-d5e6-7890-abcd-ef1234567890
+        status:
+          type: string
+          description: Status invoice setelah di-approve
+          enum:
+            - approved
+          example: approved
+        reviewed_by:
+          type: string
+          format: uuid
+          description: UUID admin yang melakukan approve
+          example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        reviewed_at:
+          type: string
+          format: date-time
+          description: Waktu approve
+          example: '2024-01-16T09:00:00Z'
+
+    InvoiceRejectRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          description: Alasan penolakan
+          example: Target pendanaan tidak realistis untuk luas lahan yang tersedia.
+
+    InvoiceRejectResponse:
+      type: object
+      properties:
+        invoice_id:
+          type: string
+          format: uuid
+          description: UUID invoice yang di-reject
+          example: i1a2b3c4-d5e6-7890-abcd-ef1234567890
+        status:
+          type: string
+          description: Status invoice setelah di-reject
+          enum:
+            - rejected
+          example: rejected
+        reviewed_by:
+          type: string
+          format: uuid
+          description: UUID admin yang melakukan reject
+          example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        reviewed_at:
+          type: string
+          format: date-time
+          description: Waktu reject
+          example: '2024-01-16T09:00:00Z'
+        reason:
+          type: string
+          description: Alasan penolakan
+          example: Target pendanaan tidak realistis
 
     # ==================== ERROR SCHEMAS ====================
     ErrorResponse:
