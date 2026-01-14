@@ -407,6 +407,11 @@ Authorization: Bearer {token}
 
 Approve invoice yang statusnya `pending`. Status akan berubah menjadi `approved` dan invoice akan muncul di Shop untuk investor.
 
+**⚠️ Penting:** Endpoint ini memerlukan data dari transaksi blockchain. Frontend harus:
+1. Memanggil smart contract `OwnaFarmNFT.approveInvoice(tokenId)` terlebih dahulu
+2. Mendapatkan `token_id` dan `tx_hash` dari transaksi tersebut
+3. Mengirimkan data tersebut ke endpoint ini
+
 | Method | Endpoint | Auth |
 |--------|----------|------|
 | `PATCH` | `/admin/invoices/:id/approve` | ✅ Admin |
@@ -416,12 +421,31 @@ Approve invoice yang statusnya `pending`. Status akan berubah menjadi `approved`
 **URL Parameters:**
 - `id` (required) - Invoice ID (UUID)
 
-**Request Body:** Tidak diperlukan.
+**Request Body:**
+```json
+{
+  "token_id": 123,
+  "approval_tx_hash": "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+}
+```
+
+**Field Details:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `token_id` | integer | ✅ | Token ID yang didapat dari smart contract setelah approve |
+| `approval_tx_hash` | string | ✅ | Transaction hash dari transaksi approve di blockchain (66 karakter) |
 
 **Example:**
 ```bash
 PATCH /admin/invoices/i1a2b3c4-d5e6-7890-abcd-ef1234567890/approve
 Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "token_id": 123,
+  "approval_tx_hash": "0xabc123def456789012345678901234567890123456789012345678901234abcd"
+}
 ```
 
 **Response (200):**
@@ -431,6 +455,8 @@ Authorization: Bearer {token}
   "data": {
     "invoice_id": "i1a2b3c4-d5e6-7890-abcd-ef1234567890",
     "status": "approved",
+    "token_id": 123,
+    "approval_tx_hash": "0xabc123def456789012345678901234567890123456789012345678901234abcd",
     "reviewed_by": "admin-uuid",
     "reviewed_at": "2024-01-16T09:00:00Z"
   }
@@ -438,7 +464,7 @@ Authorization: Bearer {token}
 ```
 
 **Errors:**
-- `400` - Invoice ID is required
+- `400` - Invalid request body (token_id dan approval_tx_hash wajib diisi)
 - `401` - Unauthorized
 - `404` - Invoice not found
 - `409` - Invoice has already been processed (not in pending status)

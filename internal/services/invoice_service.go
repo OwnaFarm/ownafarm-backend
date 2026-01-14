@@ -33,7 +33,7 @@ type InvoiceServiceInterface interface {
 	// Admin operations
 	GetByIDForAdmin(ctx context.Context, invoiceID string) (*response.InvoiceResponse, error)
 	ListForAdmin(ctx context.Context, req *request.ListInvoiceRequest) (*response.ListInvoiceAdminResponse, error)
-	ApproveInvoice(ctx context.Context, invoiceID, adminID, ipAddress, userAgent string) (*response.InvoiceStatusUpdateResponse, error)
+	ApproveInvoice(ctx context.Context, invoiceID, adminID string, req *request.ApproveInvoiceRequest, ipAddress, userAgent string) (*response.InvoiceStatusUpdateResponse, error)
 	RejectInvoice(ctx context.Context, invoiceID, adminID string, reason *string, ipAddress, userAgent string) (*response.InvoiceStatusUpdateResponse, error)
 }
 
@@ -267,8 +267,8 @@ func (s *InvoiceService) ListForAdmin(ctx context.Context, req *request.ListInvo
 	}, nil
 }
 
-// ApproveInvoice approves an invoice
-func (s *InvoiceService) ApproveInvoice(ctx context.Context, invoiceID, adminID, ipAddress, userAgent string) (*response.InvoiceStatusUpdateResponse, error) {
+// ApproveInvoice approves an invoice with blockchain data
+func (s *InvoiceService) ApproveInvoice(ctx context.Context, invoiceID, adminID string, req *request.ApproveInvoiceRequest, ipAddress, userAgent string) (*response.InvoiceStatusUpdateResponse, error) {
 	invoice, err := s.invoiceRepo.GetByID(invoiceID)
 	if err != nil {
 		return nil, ErrInvoiceNotFound
@@ -282,12 +282,14 @@ func (s *InvoiceService) ApproveInvoice(ctx context.Context, invoiceID, adminID,
 	// Store old status for audit
 	oldStatus := string(invoice.Status)
 
-	// Update invoice status
+	// Update invoice status and blockchain data
 	now := time.Now()
 	invoice.Status = models.InvoiceStatusApproved
 	invoice.ReviewedBy = &adminID
 	invoice.ReviewedAt = &now
 	invoice.ApprovedAt = &now
+	invoice.TokenID = &req.TokenID
+	invoice.ApprovalTxHash = &req.ApprovalTxHash
 
 	if err := s.invoiceRepo.Update(invoice); err != nil {
 		return nil, fmt.Errorf("failed to update invoice: %w", err)
@@ -297,11 +299,13 @@ func (s *InvoiceService) ApproveInvoice(ctx context.Context, invoiceID, adminID,
 	s.createAuditLog(adminID, models.AuditActionApproveInvoice, models.AuditEntityTypeInvoice, invoiceID, oldStatus, string(invoice.Status), nil, ipAddress, userAgent)
 
 	return &response.InvoiceStatusUpdateResponse{
-		InvoiceID:  invoice.ID,
-		Status:     string(invoice.Status),
-		ReviewedBy: adminID,
-		ReviewedAt: now,
-		Reason:     nil,
+		InvoiceID:      invoice.ID,
+		Status:         string(invoice.Status),
+		TokenID:        invoice.TokenID,
+		ApprovalTxHash: invoice.ApprovalTxHash,
+		ReviewedBy:     adminID,
+		ReviewedAt:     now,
+		Reason:         nil,
 	}, nil
 }
 

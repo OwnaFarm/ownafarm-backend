@@ -93,9 +93,11 @@ type PresignInvoiceImageResponse struct {
 
 // InvoiceStatusUpdateResponse is the response for approve/reject invoice
 type InvoiceStatusUpdateResponse struct {
-	InvoiceID  string     `json:"invoice_id"`
-	Status     string     `json:"status"`
-	ReviewedBy string     `json:"reviewed_by"`
-	ReviewedAt time.Time  `json:"reviewed_at"`
-	Reason     *string    `json:"reason,omitempty"`
+	InvoiceID      string    `json:"invoice_id"`
+	Status         string    `json:"status"`
+	TokenID        *int64    `json:"token_id,omitempty"`
+	ApprovalTxHash *string   `json:"approval_tx_hash,omitempty"`
+	ReviewedBy     string    `json:"reviewed_by"`
+	ReviewedAt     time.Time `json:"reviewed_at"`
+	Reason         *string   `json:"reason,omitempty"`
 }

@@ -13,7 +13,7 @@ func TestAuthService_VerifySignature_InvalidWalletFormat(t *testing.T) {
 	cfg := &config.AuthConfig{
 		EIP712Name:    "OwnaFarm",
 		EIP712Version: "1",
-		EIP712ChainID: 5000,
+		EIP712ChainID: 5003,
 	}
 	authService := NewAuthService(cfg)
 
@@ -26,7 +26,7 @@ func TestAuthService_VerifySignature_InvalidSignatureLength(t *testing.T) {
 	cfg := &config.AuthConfig{
 		EIP712Name:    "OwnaFarm",
 		EIP712Version: "1",
-		EIP712ChainID: 5000,
+		EIP712ChainID: 5003,
 	}
 	authService := NewAuthService(cfg)
 
@@ -45,7 +45,7 @@ func TestAuthService_NormalizeWalletAddress(t *testing.T) {
 	cfg := &config.AuthConfig{
 		EIP712Name:    "OwnaFarm",
 		EIP712Version: "1",
-		EIP712ChainID: 5000,
+		EIP712ChainID: 5003,
 	}
 	authService := NewAuthService(cfg)
 
@@ -83,7 +83,7 @@ func TestAuthService_BuildTypedDataHash(t *testing.T) {
 	cfg := &config.AuthConfig{
 		EIP712Name:    "OwnaFarm",
 		EIP712Version: "1",
-		EIP712ChainID: 5000,
+		EIP712ChainID: 5003,
 	}
 	authService := NewAuthService(cfg)
 
@@ -110,7 +110,7 @@ func TestAuthService_VerifySignature_Success(t *testing.T) {
 	cfg := &config.AuthConfig{
 		EIP712Name:    "OwnaFarm",
 		EIP712Version: "1",
-		EIP712ChainID: 5000,
+		EIP712ChainID: 5003,
 	}
 	authService := NewAuthService(cfg)
 
@@ -147,7 +147,7 @@ func TestAuthService_VerifySignature_WrongWalletAddress(t *testing.T) {
 	cfg := &config.AuthConfig{
 		EIP712Name:    "OwnaFarm",
 		EIP712Version: "1",
-		EIP712ChainID: 5000,
+		EIP712ChainID: 5003,
 	}
 	authService := NewAuthService(cfg)
 

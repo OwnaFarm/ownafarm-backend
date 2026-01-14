@@ -282,10 +282,21 @@ func (h *InvoiceHandler) ApproveInvoice(c *gin.Context) {
 		return
 	}
 
+	// Parse request body with blockchain data
+	var req request.ApproveInvoiceRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "error",
+			"message": "Invalid request body. token_id and approval_tx_hash are required",
+			"details": err.Error(),
+		})
+		return
+	}
+
 	ipAddress, _ := middleware.GetIPAddress(c)
 	userAgent, _ := middleware.GetUserAgent(c)
 
-	resp, err := h.invoiceService.ApproveInvoice(c.Request.Context(), invoiceID, adminID, ipAddress, userAgent)
+	resp, err := h.invoiceService.ApproveInvoice(c.Request.Context(), invoiceID, adminID, &req, ipAddress, userAgent)
 	if err != nil {
 		if errors.Is(err, services.ErrInvoiceNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{

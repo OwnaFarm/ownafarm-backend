@@ -1507,6 +1507,10 @@ paths:
       description: >-
         Approve invoice yang statusnya pending. Status akan berubah menjadi approved
         dan invoice akan muncul di Shop untuk investor.
+        
+        **Penting:** Endpoint ini memerlukan data dari transaksi blockchain.
+        Frontend harus memanggil smart contract `OwnaFarmNFT.approveInvoice(tokenId)`
+        terlebih dahulu, lalu mengirimkan token_id dan tx_hash ke endpoint ini.
       operationId: approveInvoice
       tags:
         - Admin Invoice Management
@@ -1521,6 +1525,12 @@ paths:
             type: string
             format: uuid
             example: i1a2b3c4-d5e6-7890-abcd-ef1234567890
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvoiceApproveRequest'
       responses:
         '200':
           description: Invoice berhasil di-approve
@@ -1542,7 +1552,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 status: error
-                message: Invoice ID is required
+                message: Invalid request body. token_id and approval_tx_hash are required
         '401':
           description: Unauthorized
           content:
@@ -3247,6 +3257,25 @@ components:
           description: Waktu update terakhir
           example: '2024-01-15T10:30:00Z'
 
+    InvoiceApproveRequest:
+      type: object
+      description: Request body untuk approve invoice dengan data blockchain
+      required:
+        - token_id
+        - approval_tx_hash
+      properties:
+        token_id:
+          type: integer
+          format: int64
+          description: Token ID yang didapat dari smart contract setelah approve
+          example: 123
+        approval_tx_hash:
+          type: string
+          minLength: 66
+          maxLength: 66
+          description: Transaction hash dari transaksi approve di blockchain (66 karakter)
+          example: "0xabc123def456789012345678901234567890123456789012345678901234abcd"
+
     InvoiceApproveResponse:
       type: object
       properties:
@@ -3261,6 +3290,15 @@ components:
           enum:
             - approved
           example: approved
+        token_id:
+          type: integer
+          format: int64
+          description: Token ID di blockchain
+          example: 123
+        approval_tx_hash:
+          type: string
+          description: Transaction hash dari transaksi approve
+          example: "0xabc123def456789012345678901234567890123456789012345678901234abcd"
         reviewed_by:
           type: string
           format: uuid
