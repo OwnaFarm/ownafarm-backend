@@ -2,29 +2,30 @@ package repositories
 
 import (
 	"github.com/ownafarm/ownafarm-backend/internal/models"
+	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 )
 
 // InvoiceFilter contains filter options for listing invoices
 type InvoiceFilter struct {
-	FarmID                    string   // Filter by farm ID
-	FarmerID                  string   // Filter by farmer ID (via farm relation)
-	Status                    []string // Filter by status (pending, approved, rejected)
-	Page                      int      // Current page (1-indexed)
-	Limit                     int      // Items per page
-	SortBy                    string   // Field to sort (created_at, name, target_fund, yield_percent, duration_days)
-	SortOrder                 string   // asc or desc
-	Search                    string   // Search by name
-	IsAvailableForInvestment  bool     // Filter for marketplace (approved + not fully funded)
-	MinTargetFund             *float64 // Min target fund filter
-	MaxTargetFund             *float64 // Max target fund filter
-	MinYield                  *float64 // Min yield percent filter
-	MaxYield                  *float64 // Max yield percent filter
-	MinDuration               *int     // Min duration days filter
-	MaxDuration               *int     // Max duration days filter
-	MinLandArea               *float64 // Min farm land area filter
-	MaxLandArea               *float64 // Max farm land area filter
-	Location                  string   // Filter by farm location (ILIKE search)
+	FarmID                   string   // Filter by farm ID
+	FarmerID                 string   // Filter by farmer ID (via farm relation)
+	Status                   []string // Filter by status (pending, approved, rejected)
+	Page                     int      // Current page (1-indexed)
+	Limit                    int      // Items per page
+	SortBy                   string   // Field to sort (created_at, name, target_fund, yield_percent, duration_days)
+	SortOrder                string   // asc or desc
+	Search                   string   // Search by name
+	IsAvailableForInvestment bool     // Filter for marketplace (approved + not fully funded)
+	MinTargetFund            *float64 // Min target fund filter
+	MaxTargetFund            *float64 // Max target fund filter
+	MinYield                 *float64 // Min yield percent filter
+	MaxYield                 *float64 // Max yield percent filter
+	MinDuration              *int     // Min duration days filter
+	MaxDuration              *int     // Max duration days filter
+	MinLandArea              *float64 // Min farm land area filter
+	MaxLandArea              *float64 // Max farm land area filter
+	Location                 string   // Filter by farm location (ILIKE search)
 }
 
 // InvoiceRepository defines the interface for invoice data access
@@ -38,6 +39,7 @@ type InvoiceRepository interface {
 	GetAllWithPagination(filter InvoiceFilter) ([]models.Invoice, int64, error)
 	GetAvailableForInvestment(filter InvoiceFilter) ([]models.Invoice, int64, error)
 	Update(invoice *models.Invoice) error
+	UpdateFundingTotals(invoiceID string) error
 }
 
 type invoiceRepository struct {
@@ -241,6 +243,36 @@ func (r *invoiceRepository) GetByTokenID(tokenID int64) (*models.Invoice, error)
 // Update updates an existing invoice record
 func (r *invoiceRepository) Update(invoice *models.Invoice) error {
 	return r.db.Save(invoice).Error
+}
+
+// UpdateFundingTotals recalculates and updates total_funded and is_fully_funded from investments
+func (r *invoiceRepository) UpdateFundingTotals(invoiceID string) error {
+	// Calculate total funded from investments table using SQL SUM
+	var totalFunded decimal.Decimal
+	err := r.db.Model(&models.Investment{}).
+		Where("invoice_id = ?", invoiceID).
+		Select("COALESCE(SUM(amount), 0)").
+		Scan(&totalFunded).Error
+	if err != nil {
+		return err
+	}
+
+	// Get invoice to check target_fund
+	var invoice models.Invoice
+	if err := r.db.First(&invoice, "id = ?", invoiceID).Error; err != nil {
+		return err
+	}
+
+	// Determine if fully funded
+	isFullyFunded := totalFunded.GreaterThanOrEqual(invoice.TargetFund)
+
+	// Update invoice
+	return r.db.Model(&models.Invoice{}).
+		Where("id = ?", invoiceID).
+		Updates(map[string]interface{}{
+			"total_funded":    totalFunded,
+			"is_fully_funded": isFullyFunded,
+		}).Error
 }
 
 // GetAvailableForInvestment retrieves approved and available invoices for marketplace

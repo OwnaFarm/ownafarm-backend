@@ -135,6 +135,10 @@ func (s *InvestmentService) SyncInvestments(ctx context.Context, userID, walletA
 			return nil, err
 		}
 
+		// Update invoice funding totals
+		// Error is logged but doesn't fail the sync - totals can be recalculated later
+		_ = s.invoiceRepo.UpdateFundingTotals(invoice.ID)
+
 		// Reload with relations for response
 		investment, err = s.investmentRepo.GetByIDWithRelations(investment.ID)
 		if err != nil {
