@@ -22,6 +22,7 @@ flowchart LR
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | `GET` | `/users/:id` | ✅ | Get user profile & game stats |
+| `GET` | `/marketplace/invoices` | ✅ | Browse available invoices for investment |
 | `POST` | `/crops/sync` | ✅ | Sync investments dari blockchain |
 | `GET` | `/crops` | ✅ | List semua crops user |
 | `GET` | `/crops/:id` | ✅ | Detail satu crop |
@@ -89,7 +90,142 @@ Level dihitung otomatis dari total XP:
 
 ---
 
-## 2. Sync Investments
+## 2. Browse Marketplace Invoices
+
+Mendapatkan list invoice (farm) yang tersedia untuk diinvest. Menampilkan invoice yang sudah **approved** oleh admin dan **belum fully funded**. Investor dapat melihat detail farm, farmer, dan progress funding sebelum melakukan investasi.
+
+| Method | Endpoint | Auth |
+|--------|----------|------|
+| `GET` | `/marketplace/invoices` | ✅ |
+
+### Query Parameters
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `min_price` | float | ❌ | Min target fund (GOLD) |
+| `max_price` | float | ❌ | Max target fund (GOLD) |
+| `min_yield` | float | ❌ | Min yield percent (0-100) |
+| `max_yield` | float | ❌ | Max yield percent (0-100) |
+| `min_duration` | int | ❌ | Min duration days |
+| `max_duration` | int | ❌ | Max duration days |
+| `min_land_area` | float | ❌ | Min farm land area (hectare) |
+| `max_land_area` | float | ❌ | Max farm land area (hectare) |
+| `location` | string | ❌ | Search in farm location (case-insensitive) |
+| `crop_type` | string | ❌ | Search in invoice name (case-insensitive) |
+| `page` | int | ❌ | Page number (default: 1, min: 1) |
+| `limit` | int | ❌ | Items per page (default: 10, min: 1, max: 100) |
+| `sort_by` | string | ❌ | Sort field: `created_at`, `name`, `target_fund`, `yield_percent`, `duration_days` |
+| `sort_order` | string | ❌ | Sort order: `asc`, `desc` (default: `desc`) |
+
+### Response
+
+```json
+{
+  "status": "success",
+  "data": {
+    "invoices": [
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440000",
+        "name": "Padi Organik Premium",
+        "description": "Penanaman padi organik berkualitas tinggi dengan sistem irigasi modern",
+        "image_url": "https://storage.example.com/invoices/rice-organic.jpg",
+        "target_fund": "5000.00000000",
+        "total_funded": "1250.00000000",
+        "funding_progress": 25.0,
+        "yield_percent": "18.50",
+        "duration_days": 120,
+        "maturity_date": "2026-05-14T00:00:00Z",
+        
+        "farm_id": "f1a2b3c4-d5e6-7890-abcd-ef1234567890",
+        "farm_name": "Kebun Makmur Sejahtera",
+        "farm_location": "Bogor, Jawa Barat",
+        "farm_land_area": "2.50000000",
+        "farm_cctv_image": "https://storage.example.com/farms/cctv-snapshot.jpg",
+        
+        "farmer_name": "Budi Santoso",
+        
+        "created_at": "2026-01-10T08:00:00Z",
+        "approved_at": "2026-01-12T10:30:00Z"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 10,
+      "total_items": 42,
+      "total_pages": 5
+    }
+  }
+}
+```
+
+### Example Requests
+
+```bash
+# List all available invoices (default: highest yield first)
+GET /marketplace/invoices
+
+# Filter by high yield opportunities
+GET /marketplace/invoices?min_yield=15&sort_by=yield_percent&sort_order=desc
+
+# Filter by price range and location
+GET /marketplace/invoices?min_price=1000&max_price=5000&location=bogor
+
+# Search for specific crop type
+GET /marketplace/invoices?crop_type=padi
+
+# Short-term investments only
+GET /marketplace/invoices?max_duration=60&sort_by=duration_days&sort_order=asc
+
+# Filter by farm size
+GET /marketplace/invoices?min_land_area=1.5&max_land_area=5
+
+# Pagination
+GET /marketplace/invoices?page=2&limit=20
+```
+
+### Field Descriptions
+
+- **`funding_progress`**: Calculated percentage (total_funded / target_fund × 100)
+- **`yield_percent`**: Expected return percentage (e.g., 18.50% return)
+- **`duration_days`**: Days until maturity (harvest time)
+- **`maturity_date`**: Estimated harvest date
+- **`farm_cctv_image`**: Latest CCTV snapshot from farm monitoring
+- **`farm_land_area`**: Total land area in hectares
+
+### Sort Options
+
+Default sorting: **`yield_percent DESC`** (highest yield first)
+
+Available sort fields:
+- `created_at` - Newest/oldest invoices
+- `name` - Alphabetical by crop name
+- `target_fund` - By funding amount
+- `yield_percent` - By expected return (recommended for investors)
+- `duration_days` - By investment duration
+
+### Integration Flow
+
+```javascript
+// 1. Browse marketplace
+const response = await fetch('/marketplace/invoices?min_yield=15&limit=20', {
+  headers: { 'Authorization': `Bearer ${token}` }
+});
+const { invoices } = response.data;
+
+// 2. Display invoices to investor
+invoices.forEach(invoice => {
+  console.log(`${invoice.name} - ${invoice.yield_percent}% yield`);
+  console.log(`Progress: ${invoice.funding_progress}%`);
+  console.log(`Farm: ${invoice.farm_name} (${invoice.farm_location})`);
+});
+
+// 3. Investor selects invoice and invests via blockchain
+// (See section "Setelah Invest di Blockchain" below)
+```
+
+---
+
+## 3. Sync Investments
 
 Sinkronisasi investasi dari blockchain ke database. Panggil setelah investor melakukan transaksi `invest()` di frontend.
 
@@ -149,7 +285,7 @@ sequenceDiagram
 
 ---
 
-## 3. List Crops
+## 4. List Crops
 
 Mendapatkan daftar semua crops milik user dengan pagination.
 
@@ -196,7 +332,7 @@ Mendapatkan daftar semua crops milik user dengan pagination.
 
 ---
 
-## 4. Get Crop Detail
+## 5. Get Crop Detail
 
 Mendapatkan detail satu crop.
 
@@ -232,7 +368,7 @@ Mendapatkan detail satu crop.
 
 ---
 
-## 5. Water Crop
+## 6. Water Crop
 
 Menyiram tanaman (game mechanic untuk XP). Tidak mempengaruhi progress - hanya gimmick.
 
@@ -280,7 +416,7 @@ Menyiram tanaman (game mechanic untuk XP). Tidak mempengaruhi progress - hanya g
 
 ---
 
-## 6. Sync Harvest
+## 7. Sync Harvest
 
 Sinkronisasi status harvest dari blockchain setelah user melakukan `harvest()` di frontend.
 

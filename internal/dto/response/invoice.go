@@ -101,3 +101,36 @@ type InvoiceStatusUpdateResponse struct {
 	ReviewedAt     time.Time `json:"reviewed_at"`
 	Reason         *string   `json:"reason,omitempty"`
 }
+
+// MarketplaceInvoiceItem represents an invoice in the marketplace list response
+type MarketplaceInvoiceItem struct {
+	ID              string          `json:"id"`
+	Name            string          `json:"name"`
+	Description     *string         `json:"description,omitempty"`
+	ImageURL        *string         `json:"image_url,omitempty"`
+	TargetFund      decimal.Decimal `json:"target_fund"`
+	TotalFunded     decimal.Decimal `json:"total_funded"`
+	FundingProgress float64         `json:"funding_progress"` // Percentage: (total_funded / target_fund) * 100
+	YieldPercent    decimal.Decimal `json:"yield_percent"`
+	DurationDays    int             `json:"duration_days"`
+	MaturityDate    *time.Time      `json:"maturity_date,omitempty"`
+
+	// Farm details
+	FarmID        string           `json:"farm_id"`
+	FarmName      string           `json:"farm_name"`
+	FarmLocation  string           `json:"farm_location"`
+	FarmLandArea  *decimal.Decimal `json:"farm_land_area,omitempty"`
+	FarmCCTVImage *string          `json:"farm_cctv_image,omitempty"`
+
+	// Farmer details
+	FarmerName string `json:"farmer_name"`
+
+	CreatedAt  time.Time  `json:"created_at"`
+	ApprovedAt *time.Time `json:"approved_at,omitempty"`
+}
+
+// ListMarketplaceInvoicesResponse is the response for marketplace invoice listing
+type ListMarketplaceInvoicesResponse struct {
+	Invoices   []MarketplaceInvoiceItem `json:"invoices"`
+	Pagination PaginationMeta           `json:"pagination"`
+}

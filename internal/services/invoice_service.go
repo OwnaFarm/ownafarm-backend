@@ -30,6 +30,9 @@ type InvoiceServiceInterface interface {
 	List(ctx context.Context, farmerID string, req *request.ListInvoiceRequest) (*response.ListInvoiceResponse, error)
 	GeneratePresignedImageURL(ctx context.Context, req *request.PresignInvoiceImageRequest) (*response.PresignInvoiceImageResponse, error)
 
+	// Investor operations
+	ListAvailableInvoices(ctx context.Context, req *request.ListMarketplaceInvoicesRequest) (*response.ListMarketplaceInvoicesResponse, error)
+
 	// Admin operations
 	GetByIDForAdmin(ctx context.Context, invoiceID string) (*response.InvoiceResponse, error)
 	ListForAdmin(ctx context.Context, req *request.ListInvoiceRequest) (*response.ListInvoiceAdminResponse, error)
@@ -191,6 +194,88 @@ func (s *InvoiceService) GeneratePresignedImageURL(ctx context.Context, req *req
 	return &response.PresignInvoiceImageResponse{
 		UploadURL: uploadURL,
 		FileKey:   fileKey,
+	}, nil
+}
+
+// ListAvailableInvoices retrieves approved and available invoices for marketplace
+func (s *InvoiceService) ListAvailableInvoices(ctx context.Context, req *request.ListMarketplaceInvoicesRequest) (*response.ListMarketplaceInvoicesResponse, error) {
+	// Set defaults
+	if req.Page < 1 {
+		req.Page = 1
+	}
+	if req.Limit < 1 {
+		req.Limit = 10
+	}
+
+	// Build filter
+	filter := repositories.InvoiceFilter{
+		IsAvailableForInvestment: true, // Base marketplace filter
+		MinTargetFund:            req.MinPrice,
+		MaxTargetFund:            req.MaxPrice,
+		MinYield:                 req.MinYield,
+		MaxYield:                 req.MaxYield,
+		MinDuration:              req.MinDuration,
+		MaxDuration:              req.MaxDuration,
+		MinLandArea:              req.MinLandArea,
+		MaxLandArea:              req.MaxLandArea,
+		Location:                 req.Location,
+		Search:                   req.CropType, // Search in invoice name for crop type
+		Page:                     req.Page,
+		Limit:                    req.Limit,
+		SortBy:                   req.SortBy,
+		SortOrder:                req.SortOrder,
+	}
+
+	invoices, totalCount, err := s.invoiceRepo.GetAvailableForInvestment(filter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get marketplace invoices: %w", err)
+	}
+
+	// Map to response
+	invoiceItems := make([]response.MarketplaceInvoiceItem, 0, len(invoices))
+	for _, inv := range invoices {
+		// Calculate funding progress percentage
+		fundingProgress := 0.0
+		if !inv.TargetFund.IsZero() {
+			fundingProgress = inv.TotalFunded.Div(inv.TargetFund).Mul(decimal.NewFromInt(100)).InexactFloat64()
+		}
+
+		invoiceItems = append(invoiceItems, response.MarketplaceInvoiceItem{
+			ID:              inv.ID,
+			Name:            inv.Name,
+			Description:     inv.Description,
+			ImageURL:        inv.ImageURL,
+			TargetFund:      inv.TargetFund,
+			TotalFunded:     inv.TotalFunded,
+			FundingProgress: fundingProgress,
+			YieldPercent:    inv.YieldPercent,
+			DurationDays:    inv.DurationDays,
+			MaturityDate:    inv.MaturityDate,
+			FarmID:          inv.FarmID,
+			FarmName:        inv.Farm.Name,
+			FarmLocation:    inv.Farm.Location,
+			FarmLandArea:    inv.Farm.LandArea,
+			FarmCCTVImage:   inv.Farm.CCTVImageUrl,
+			FarmerName:      inv.Farm.Farmer.FullName,
+			CreatedAt:       inv.CreatedAt,
+			ApprovedAt:      inv.ApprovedAt,
+		})
+	}
+
+	// Calculate total pages
+	totalPages := int(totalCount) / req.Limit
+	if int(totalCount)%req.Limit > 0 {
+		totalPages++
+	}
+
+	return &response.ListMarketplaceInvoicesResponse{
+		Invoices: invoiceItems,
+		Pagination: response.PaginationMeta{
+			Page:       req.Page,
+			Limit:      req.Limit,
+			TotalItems: totalCount,
+			TotalPages: totalPages,
+		},
 	}, nil
 }
 

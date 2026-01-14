@@ -40,3 +40,21 @@ type ApproveInvoiceRequest struct {
 	TokenID        int64  `json:"token_id" binding:"required"`
 	ApprovalTxHash string `json:"approval_tx_hash" binding:"required,len=66"`
 }
+
+// ListMarketplaceInvoicesRequest contains query parameters for marketplace invoice listing
+type ListMarketplaceInvoicesRequest struct {
+	MinPrice     *float64 `form:"min_price" binding:"omitempty,min=0"`
+	MaxPrice     *float64 `form:"max_price" binding:"omitempty,gt=0"`
+	MinYield     *float64 `form:"min_yield" binding:"omitempty,min=0,max=100"`
+	MaxYield     *float64 `form:"max_yield" binding:"omitempty,gt=0,max=100"`
+	MinDuration  *int     `form:"min_duration" binding:"omitempty,min=1"`
+	MaxDuration  *int     `form:"max_duration" binding:"omitempty,min=1"`
+	MinLandArea  *float64 `form:"min_land_area" binding:"omitempty,min=0"`
+	MaxLandArea  *float64 `form:"max_land_area" binding:"omitempty,gt=0"`
+	Location     string   `form:"location"`     // Search in farm location
+	CropType     string   `form:"crop_type"`    // Search in invoice name
+	Page         int      `form:"page" binding:"omitempty,min=1"`
+	Limit        int      `form:"limit" binding:"omitempty,min=1,max=100"`
+	SortBy       string   `form:"sort_by"`       // created_at, name, target_fund, yield_percent, duration_days
+	SortOrder    string   `form:"sort_order"`    // asc, desc
+}

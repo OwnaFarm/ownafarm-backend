@@ -49,6 +49,9 @@ func SetupRoutes(
 		// Farmer document download (requires auth)
 		protected.GET("/farmers/:farmer_id/documents/:document_id/download", farmerHandler.GetDocumentDownloadURL)
 
+		// Marketplace routes (investor can browse available invoices)
+		protected.GET("/marketplace/invoices", invoiceHandler.ListMarketplace)
+
 		// Crop/Investment routes
 		protected.POST("/crops/sync", investmentHandler.SyncInvestments)
 		protected.GET("/crops", investmentHandler.ListCrops)

@@ -195,6 +195,36 @@ func (h *InvoiceHandler) GetPresignedImageURL(c *gin.Context) {
 	})
 }
 
+// --- Investor Handlers ---
+
+// ListMarketplace handles listing approved and available invoices for marketplace
+// GET /marketplace/invoices
+func (h *InvoiceHandler) ListMarketplace(c *gin.Context) {
+	var req request.ListMarketplaceInvoicesRequest
+	if err := c.ShouldBindQuery(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "error",
+			"message": "Invalid query parameters",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	resp, err := h.invoiceService.ListAvailableInvoices(c.Request.Context(), &req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status":  "error",
+			"message": "Failed to fetch marketplace invoices",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status": "success",
+		"data":   resp,
+	})
+}
+
 // --- Admin Handlers ---
 
 // GetByIDForAdmin handles getting an invoice by ID (admin)
