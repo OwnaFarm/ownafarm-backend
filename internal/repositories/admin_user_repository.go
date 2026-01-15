@@ -22,9 +22,10 @@ func NewAdminUserRepository(db *gorm.DB) AdminUserRepository {
 }
 
 // GetByWalletAddress retrieves an admin user by their wallet address
+// Uses case-insensitive comparison since wallet addresses may be stored in different formats
 func (r *adminUserRepository) GetByWalletAddress(ctx context.Context, walletAddress string) (*models.AdminUser, error) {
 	var admin models.AdminUser
-	err := r.db.WithContext(ctx).Where("wallet_address = ?", walletAddress).First(&admin).Error
+	err := r.db.WithContext(ctx).Where("LOWER(wallet_address) = LOWER(?)", walletAddress).First(&admin).Error
 	if err != nil {
 		return nil, err
 	}

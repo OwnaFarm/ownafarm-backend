@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OwnAFarm - Admin Farmer Management</title>
+    <style>
+        :root {
+            --primary: #10b981;
+            --primary-dark: #059669;
+            --secondary: #1e293b;
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --success: #22c55e;
+            --error: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --border: #334155;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #1a2332 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            width: 100%;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary) 0%, #34d399 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border);
+            margin-bottom: 24px;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .step-badge {
+            background: var(--primary);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px -10px rgba(16, 185, 129, 0.5);
+        }
+
+        .btn-secondary {
+            background: var(--secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #2d3b50;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            color: white;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px -10px rgba(34, 197, 94, 0.5);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px -10px rgba(239, 68, 68, 0.5);
+        }
+
+        .btn-block {
+            width: 100%;
+        }
+
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 0.85rem;
+        }
+
+        .info-box {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .info-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .info-value {
+            font-family: 'SF Mono', 'Consolas', monospace;
+            font-size: 0.9rem;
+            word-break: break-all;
+            color: var(--primary);
+        }
+
+        .status {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .status.show {
+            display: block;
+        }
+
+        .status.success {
+            background: rgba(34, 197, 94, 0.15);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: var(--success);
+        }
+
+        .status.error {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: var(--error);
+        }
+
+        .status.loading {
+            background: rgba(245, 158, 11, 0.15);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            color: var(--warning);
+        }
+
+        .api-info {
+            background: rgba(71, 85, 105, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 16px;
+            font-size: 0.85rem;
+        }
+
+        .api-method {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.75rem;
+            margin-right: 8px;
+        }
+
+        .api-method.get {
+            background: #3b82f6;
+        }
+
+        .api-method.post {
+            background: #22c55e;
+        }
+
+        .api-method.patch {
+            background: #f59e0b;
+        }
+
+        .api-endpoint {
+            font-family: 'SF Mono', 'Consolas', monospace;
+            color: var(--text-secondary);
+        }
+
+        /* Farmer Table Styles */
+        .farmers-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+        }
+
+        .farmers-table th,
+        .farmers-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .farmers-table th {
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .farmers-table tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-badge.pending {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+
+        .status-badge.approved {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+
+        .status-badge.rejected {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .status-badge.under_review {
+            background: rgba(59, 130, 246, 0.2);
+            color: #3b82f6;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin-top: 20px;
+        }
+
+        .pagination-info {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin: 0 16px;
+        }
+
+        /* Response Box */
+        .response-box {
+            background: #0d1117;
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 16px;
+            font-family: 'SF Mono', 'Consolas', monospace;
+            font-size: 0.8rem;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            display: none;
+        }
+
+        .response-box.show {
+            display: block;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 500px;
+            width: 90%;
+            border: 1px solid var(--border);
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-overlay.show .modal {
+            transform: scale(1);
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .modal-body {
+            margin-bottom: 24px;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #0d1117;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            resize: vertical;
+            min-height: 100px;
+            transition: border-color 0.2s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        label {
+            display: block;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        footer {
+            margin-top: 40px;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        footer a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        .divider {
+            height: 1px;
+            background: var(--border);
+            margin: 20px 0;
+        }
+
+        /* Filter Section */
+        .filter-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+
+        .filter-group {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #0d1117;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        /* Connected wallet indicator */
+        .wallet-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 20px;
+            font-size: 0.85rem;
+        }
+
+        .wallet-indicator .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+        }
+
+        .wallet-indicator.disconnected {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .wallet-indicator.disconnected .dot {
+            background: var(--error);
+        }
+
+        .header-actions {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 16px;
+            margin-top: 16px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">🌾 OwnAFarm Admin</div>
+            <p class="subtitle">Farmer Management Dashboard</p>
+            <div class="header-actions">
+                <div class="wallet-indicator disconnected" id="walletIndicator">
+                    <span class="dot"></span>
+                    <span id="walletStatus">Not Connected</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Step 1: Connect Wallet & Login -->
+        <div class="card" id="loginCard">
+            <div class="card-title">
+                <span class="step-badge">Step 1</span>
+                Admin Login (Wallet Signature)
+            </div>
+            <div class="api-info">
+                <span class="api-method get">GET</span>
+                <span class="api-endpoint">/admin/auth/nonce</span>
+                <span style="margin: 0 8px;">→</span>
+                <span class="api-method post">POST</span>
+                <span class="api-endpoint">/admin/auth/login</span>
+            </div>
+            <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                Connect your wallet and sign a message to login as admin. Make sure your wallet address is registered as
+                an admin.
+            </p>
+
+            <button class="btn btn-primary btn-block" id="connectBtn" onclick="connectAndLogin()">
+                🔐 Connect Wallet & Login
+            </button>
+            <div class="status" id="loginStatus"></div>
+            <div class="response-box" id="loginResponse"></div>
+        </div>
+
+        <!-- Step 2: View Pending Farmers -->
+        <div class="card" id="farmersCard" style="display: none;">
+            <div class="card-title">
+                <span class="step-badge">Step 2</span>
+                Pending Farmer Registrations
+            </div>
+            <div class="api-info">
+                <span class="api-method get">GET</span>
+                <span class="api-endpoint">/admin/farmers?status=pending</span>
+            </div>
+
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label>Status Filter</label>
+                    <select id="statusFilter" onchange="loadFarmers()">
+                        <option value="pending">Pending</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                        <option value="under_review">Under Review</option>
+                        <option value="">All</option>
+                    </select>
+                </div>
+                <div class="filter-group" style="display: flex; align-items: flex-end;">
+                    <button class="btn btn-secondary btn-block" onclick="loadFarmers()">
+                        🔄 Refresh
+                    </button>
+                </div>
+            </div>
+
+            <div id="farmersTableContainer">
+                <div class="empty-state">
+                    <p>Click "Refresh" to load farmers</p>
+                </div>
+            </div>
+
+            <div class="status" id="farmersStatus"></div>
+            <div class="response-box" id="farmersResponse"></div>
+        </div>
+
+        <!-- Action Log -->
+        <div class="card" id="actionLogCard" style="display: none;">
+            <div class="card-title">
+                📋 Action Log
+            </div>
+            <div id="actionLog" style="max-height: 200px; overflow-y: auto;">
+                <p style="color: var(--text-secondary);">Actions will appear here...</p>
+            </div>
+        </div>
+
+        <footer>
+            <p>API Base URL: <a href="https://ownafarm-backend-production.up.railway.app"
+                    target="_blank">https://ownafarm-backend-production.up.railway.app</a></p>
+            <p style="margin-top: 8px;">Made for OwnAFarm Backend Testing</p>
+        </footer>
+    </div>
+
+    <!-- Reject Modal -->
+    <div class="modal-overlay" id="rejectModal">
+        <div class="modal">
+            <div class="modal-title">❌ Reject Farmer</div>
+            <div class="modal-body">
+                <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                    Please provide a reason for rejection (optional):
+                </p>
+                <label>Rejection Reason</label>
+                <textarea id="rejectReason" placeholder="e.g., Documents are not clear, please re-upload..."></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeRejectModal()">Cancel</button>
+                <button class="btn btn-danger" onclick="confirmReject()">Reject Farmer</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://ownafarm-backend-production.up.railway.app';
+        let authToken = null;
+        let currentFarmerIdToReject = null;
+
+        // Helper functions
+        function showStatus(elementId, type, message) {
+            const el = document.getElementById(elementId);
+            el.className = `status show ${type}`;
+            el.textContent = message;
+        }
+
+        function hideStatus(elementId) {
+            document.getElementById(elementId).className = 'status';
+        }
+
+        function showResponse(elementId, data) {
+            const el = document.getElementById(elementId);
+            el.textContent = JSON.stringify(data, null, 2);
+            el.className = 'response-box show';
+        }
+
+        function addToActionLog(message, type = 'info') {
+            const log = document.getElementById('actionLog');
+            const time = new Date().toLocaleTimeString();
+            const color = type === 'success' ? 'var(--success)' : type === 'error' ? 'var(--error)' : 'var(--text-secondary)';
+            log.innerHTML = `<p style="color: ${color}; margin-bottom: 8px;">[${time}] ${message}</p>` + log.innerHTML;
+        }
+
+        function updateWalletIndicator(connected, address) {
+            const indicator = document.getElementById('walletIndicator');
+            const status = document.getElementById('walletStatus');
+            if (connected) {
+                indicator.classList.remove('disconnected');
+                status.textContent = `${address.slice(0, 6)}...${address.slice(-4)}`;
+            } else {
+                indicator.classList.add('disconnected');
+                status.textContent = 'Not Connected';
+            }
+        }
+
+        // Connect wallet and login
+        async function connectAndLogin() {
+            const btn = document.getElementById('connectBtn');
+
+            if (typeof window.ethereum === 'undefined') {
+                showStatus('loginStatus', 'error', '❌ MetaMask is not installed. Please install MetaMask to continue.');
+                return;
+            }
+
+            try {
+                btn.disabled = true;
+                showStatus('loginStatus', 'loading', '⏳ Connecting to MetaMask...');
+
+                // Request wallet connection
+                const accounts = await window.ethereum.request({
+                    method: 'eth_requestAccounts'
+                });
+                const walletAddress = accounts[0];
+                updateWalletIndicator(true, walletAddress);
+
+                showStatus('loginStatus', 'loading', '⏳ Getting nonce from server...');
+
+                // Get nonce
+                const nonceResponse = await fetch(`${API_BASE}/admin/auth/nonce?wallet_address=${walletAddress}`);
+                const nonceData = await nonceResponse.json();
+
+                if (!nonceResponse.ok) {
+                    throw new Error(nonceData.error || 'Failed to get nonce');
+                }
+
+                showResponse('loginResponse', { step: 'nonce', ...nonceData });
+                showStatus('loginStatus', 'loading', '⏳ Please sign the message in MetaMask...');
+
+                // Build EIP-712 typed data for signing
+                const typedData = {
+                    types: {
+                        EIP712Domain: [
+                            { name: 'name', type: 'string' },
+                            { name: 'version', type: 'string' },
+                            { name: 'chainId', type: 'uint256' }
+                        ],
+                        Login: [
+                            { name: 'message', type: 'string' }
+                        ]
+                    },
+                    primaryType: 'Login',
+                    domain: {
+                        name: 'OwnaFarm',
+                        version: '1',
+                        chainId: 5003 // Mantle chain ID
+                    },
+                    message: {
+                        message: nonceData.sign_message
+                    }
+                };
+
+                // Sign with EIP-712 typed data
+                const signature = await window.ethereum.request({
+                    method: 'eth_signTypedData_v4',
+                    params: [walletAddress, JSON.stringify(typedData)]
+                });
+
+                showStatus('loginStatus', 'loading', '⏳ Verifying signature...');
+
+                // Login
+                const loginResponse = await fetch(`${API_BASE}/admin/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        wallet_address: walletAddress,
+                        signature: signature,
+                        nonce: nonceData.nonce
+                    })
+                });
+
+                const loginData = await loginResponse.json();
+
+                if (!loginResponse.ok) {
+                    throw new Error(loginData.error || 'Login failed');
+                }
+
+                authToken = loginData.token;
+                showResponse('loginResponse', loginData);
+                showStatus('loginStatus', 'success', `✅ Logged in as ${loginData.admin.role}!`);
+
+                // Show farmer management card
+                document.getElementById('farmersCard').style.display = 'block';
+                document.getElementById('actionLogCard').style.display = 'block';
+                btn.textContent = '✅ Connected';
+                addToActionLog(`Logged in as admin: ${walletAddress}`, 'success');
+
+                // Auto-load pending farmers
+                loadFarmers();
+
+            } catch (error) {
+                showStatus('loginStatus', 'error', `❌ ${error.message}`);
+                btn.disabled = false;
+            }
+        }
+
+        // Load farmers list
+        async function loadFarmers() {
+            if (!authToken) {
+                showStatus('farmersStatus', 'error', '❌ Please login first');
+                return;
+            }
+
+            const statusFilter = document.getElementById('statusFilter').value;
+            const queryParams = statusFilter ? `?status=${statusFilter}` : '';
+
+            try {
+                showStatus('farmersStatus', 'loading', '⏳ Loading farmers...');
+
+                const response = await fetch(`${API_BASE}/admin/farmers${queryParams}`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Failed to load farmers');
+                }
+
+                showResponse('farmersResponse', data);
+                renderFarmersTable(data.data);
+                hideStatus('farmersStatus');
+                addToActionLog(`Loaded ${data.data.farmers?.length || 0} farmers (filter: ${statusFilter || 'all'})`);
+
+            } catch (error) {
+                showStatus('farmersStatus', 'error', `❌ ${error.message}`);
+            }
+        }
+
+        // Render farmers table
+        function renderFarmersTable(data) {
+            const container = document.getElementById('farmersTableContainer');
+            const farmers = data.farmers || [];
+
+            if (farmers.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <p>📭 No farmers found with the selected filter</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let tableHTML = `
+                <table class="farmers-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Business</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            for (const farmer of farmers) {
+                const createdAt = new Date(farmer.created_at).toLocaleDateString();
+                const statusClass = farmer.status.replace('_', '-');
+                const isPending = farmer.status === 'pending';
+
+                tableHTML += `
+                    <tr>
+                        <td>
+                            <strong>${farmer.full_name}</strong>
+                            <br><small style="color: var(--text-secondary);">${farmer.phone_number}</small>
+                        </td>
+                        <td>${farmer.email}</td>
+                        <td>
+                            ${farmer.business_name || '-'}
+                            <br><small style="color: var(--text-secondary);">${farmer.business_type}</small>
+                        </td>
+                        <td><span class="status-badge ${statusClass}">${farmer.status}</span></td>
+                        <td><small>${createdAt}</small></td>
+                        <td>
+                            <div class="action-buttons">
+                                ${isPending ? `
+                                    <button class="btn btn-success btn-sm" onclick="approveFarmer('${farmer.id}', '${farmer.full_name}')">
+                                        ✅ Approve
+                                    </button>
+                                    <button class="btn btn-danger btn-sm" onclick="openRejectModal('${farmer.id}', '${farmer.full_name}')">
+                                        ❌ Reject
+                                    </button>
+                                ` : '<span style="color: var(--text-secondary);">-</span>'}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
+
+            tableHTML += `
+                    </tbody>
+                </table>
+            `;
+
+            // Pagination
+            if (data.pagination) {
+                const { page, total_pages, total_items } = data.pagination;
+                tableHTML += `
+                    <div class="pagination">
+                        <span class="pagination-info">
+                            Page ${page} of ${total_pages} (${total_items} total farmers)
+                        </span>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = tableHTML;
+        }
+
+        // Approve farmer
+        async function approveFarmer(farmerId, farmerName) {
+            if (!authToken) return;
+
+            if (!confirm(`Are you sure you want to approve ${farmerName}?`)) {
+                return;
+            }
+
+            try {
+                showStatus('farmersStatus', 'loading', `⏳ Approving ${farmerName}...`);
+
+                const response = await fetch(`${API_BASE}/admin/farmers/${farmerId}/approve`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Failed to approve farmer');
+                }
+
+                showResponse('farmersResponse', data);
+                showStatus('farmersStatus', 'success', `✅ ${farmerName} has been approved!`);
+                addToActionLog(`Approved farmer: ${farmerName}`, 'success');
+
+                // Reload farmers list
+                setTimeout(() => loadFarmers(), 1000);
+
+            } catch (error) {
+                showStatus('farmersStatus', 'error', `❌ ${error.message}`);
+                addToActionLog(`Failed to approve ${farmerName}: ${error.message}`, 'error');
+            }
+        }
+
+        // Reject modal functions
+        function openRejectModal(farmerId, farmerName) {
+            currentFarmerIdToReject = { id: farmerId, name: farmerName };
+            document.getElementById('rejectReason').value = '';
+            document.getElementById('rejectModal').classList.add('show');
+        }
+
+        function closeRejectModal() {
+            document.getElementById('rejectModal').classList.remove('show');
+            currentFarmerIdToReject = null;
+        }
+
+        async function confirmReject() {
+            if (!currentFarmerIdToReject || !authToken) return;
+
+            const { id, name } = currentFarmerIdToReject;
+            const reason = document.getElementById('rejectReason').value.trim();
+
+            try {
+                closeRejectModal();
+                showStatus('farmersStatus', 'loading', `⏳ Rejecting ${name}...`);
+
+                const response = await fetch(`${API_BASE}/admin/farmers/${id}/reject`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ reason: reason || null })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Failed to reject farmer');
+                }
+
+                showResponse('farmersResponse', data);
+                showStatus('farmersStatus', 'success', `✅ ${name} has been rejected.`);
+                addToActionLog(`Rejected farmer: ${name}${reason ? ` (Reason: ${reason})` : ''}`, 'success');
+
+                // Reload farmers list
+                setTimeout(() => loadFarmers(), 1000);
+
+            } catch (error) {
+                showStatus('farmersStatus', 'error', `❌ ${error.message}`);
+                addToActionLog(`Failed to reject ${name}: ${error.message}`, 'error');
+            }
+        }
+
+        // Close modal on outside click
+        document.getElementById('rejectModal').addEventListener('click', function (e) {
+            if (e.target === this) {
+                closeRejectModal();
+            }
+        });
+
+        // Check if MetaMask is installed on load
+        window.addEventListener('load', () => {
+            if (typeof window.ethereum !== 'undefined') {
+                // Check if already connected
+                window.ethereum.request({ method: 'eth_accounts' }).then(accounts => {
+                    if (accounts.length > 0) {
+                        updateWalletIndicator(true, accounts[0]);
+                    }
+                });
+
+                // Listen for account changes
+                window.ethereum.on('accountsChanged', (accounts) => {
+                    if (accounts.length === 0) {
+                        updateWalletIndicator(false);
+                        authToken = null;
+                        document.getElementById('farmersCard').style.display = 'none';
+                        document.getElementById('actionLogCard').style.display = 'none';
+                        document.getElementById('connectBtn').disabled = false;
+                        document.getElementById('connectBtn').textContent = '🔐 Connect Wallet & Login';
+                    } else {
+                        updateWalletIndicator(true, accounts[0]);
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>
