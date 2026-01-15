@@ -4,9 +4,7 @@
 
 CREATE TABLE admin_users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    name VARCHAR(100),
+    wallet_address VARCHAR(42) UNIQUE NOT NULL,
     role VARCHAR(50) DEFAULT 'admin',
     is_active BOOLEAN DEFAULT true,
     last_login_at TIMESTAMP,
