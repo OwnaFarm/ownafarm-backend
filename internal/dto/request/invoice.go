@@ -10,6 +10,8 @@ type CreateInvoiceRequest struct {
 	YieldPercent float64 `json:"yield_percent" binding:"required,gt=0,max=100"`
 	DurationDays int     `json:"duration_days" binding:"required,min=1"`
 	OfftakerID   *string `json:"offtaker_id,omitempty" binding:"omitempty,max=100"`
+	TokenID      *int64  `json:"token_id,omitempty"` // Token ID from smart contract submitInvoice event
+	TxHash       *string `json:"tx_hash,omitempty"`  // Transaction hash of submitInvoice
 }
 
 // PresignInvoiceImageRequest is the request body for getting presigned URL for invoice image
@@ -43,18 +45,18 @@ type ApproveInvoiceRequest struct {
 
 // ListMarketplaceInvoicesRequest contains query parameters for marketplace invoice listing
 type ListMarketplaceInvoicesRequest struct {
-	MinPrice     *float64 `form:"min_price" binding:"omitempty,min=0"`
-	MaxPrice     *float64 `form:"max_price" binding:"omitempty,gt=0"`
-	MinYield     *float64 `form:"min_yield" binding:"omitempty,min=0,max=100"`
-	MaxYield     *float64 `form:"max_yield" binding:"omitempty,gt=0,max=100"`
-	MinDuration  *int     `form:"min_duration" binding:"omitempty,min=1"`
-	MaxDuration  *int     `form:"max_duration" binding:"omitempty,min=1"`
-	MinLandArea  *float64 `form:"min_land_area" binding:"omitempty,min=0"`
-	MaxLandArea  *float64 `form:"max_land_area" binding:"omitempty,gt=0"`
-	Location     string   `form:"location"`     // Search in farm location
-	CropType     string   `form:"crop_type"`    // Search in invoice name
-	Page         int      `form:"page" binding:"omitempty,min=1"`
-	Limit        int      `form:"limit" binding:"omitempty,min=1,max=100"`
-	SortBy       string   `form:"sort_by"`       // created_at, name, target_fund, yield_percent, duration_days
-	SortOrder    string   `form:"sort_order"`    // asc, desc
+	MinPrice    *float64 `form:"min_price" binding:"omitempty,min=0"`
+	MaxPrice    *float64 `form:"max_price" binding:"omitempty,gt=0"`
+	MinYield    *float64 `form:"min_yield" binding:"omitempty,min=0,max=100"`
+	MaxYield    *float64 `form:"max_yield" binding:"omitempty,gt=0,max=100"`
+	MinDuration *int     `form:"min_duration" binding:"omitempty,min=1"`
+	MaxDuration *int     `form:"max_duration" binding:"omitempty,min=1"`
+	MinLandArea *float64 `form:"min_land_area" binding:"omitempty,min=0"`
+	MaxLandArea *float64 `form:"max_land_area" binding:"omitempty,gt=0"`
+	Location    string   `form:"location"`  // Search in farm location
+	CropType    string   `form:"crop_type"` // Search in invoice name
+	Page        int      `form:"page" binding:"omitempty,min=1"`
+	Limit       int      `form:"limit" binding:"omitempty,min=1,max=100"`
+	SortBy      string   `form:"sort_by"`    // created_at, name, target_fund, yield_percent, duration_days
+	SortOrder   string   `form:"sort_order"` // asc, desc
 }

@@ -861,8 +861,40 @@
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <script>
         const API_BASE = 'https://ownafarm-backend-production.up.railway.app';
+        const OWNAFARM_CONTRACT_ADDRESS = '0xC51601dde25775bA2740EE14D633FA54e12Ef6C7';
+
+        // Minimal ABI for submitInvoice function
+        const OWNAFARM_ABI = [
+            {
+                "inputs": [
+                    { "internalType": "bytes32", "name": "offtakerId", "type": "bytes32" },
+                    { "internalType": "uint128", "name": "targetFund", "type": "uint128" },
+                    { "internalType": "uint16", "name": "yieldBps", "type": "uint16" },
+                    { "internalType": "uint32", "name": "duration", "type": "uint32" }
+                ],
+                "name": "submitInvoice",
+                "outputs": [
+                    { "internalType": "uint256", "name": "tokenId", "type": "uint256" }
+                ],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    { "indexed": true, "internalType": "uint256", "name": "tokenId", "type": "uint256" },
+                    { "indexed": true, "internalType": "address", "name": "farmer", "type": "address" },
+                    { "indexed": false, "internalType": "bytes32", "name": "offtakerId", "type": "bytes32" },
+                    { "indexed": false, "internalType": "uint256", "name": "target", "type": "uint256" }
+                ],
+                "name": "InvoiceSubmitted",
+                "type": "event"
+            }
+        ];
+
         let authToken = null;
         let farmerData = null;
         let farmsCache = [];
@@ -1458,23 +1490,97 @@
             }
 
             try {
-                showStatus('invoicesStatus', 'loading', '⏳ Uploading image...');
                 closeModal('createInvoiceModal');
 
-                // Upload image if selected
+                // Step 1: Upload image if selected
+                showStatus('invoicesStatus', 'loading', '⏳ Uploading image...');
                 let imageKey = null;
                 if (document.getElementById('invoiceImage').files.length > 0) {
                     imageKey = await uploadInvoiceImage();
                 }
 
-                showStatus('invoicesStatus', 'loading', '⏳ Creating invoice...');
+                // Step 2: Submit invoice to smart contract first
+                showStatus('invoicesStatus', 'loading', '⏳ Submitting invoice to blockchain...');
+
+                if (typeof window.ethereum === 'undefined') {
+                    throw new Error('MetaMask is not installed');
+                }
+
+                // Create provider and signer
+                const provider = new ethers.BrowserProvider(window.ethereum);
+                const signer = await provider.getSigner();
+
+                // Create contract instance
+                const contract = new ethers.Contract(OWNAFARM_CONTRACT_ADDRESS, OWNAFARM_ABI, signer);
+
+                // Convert offtakerId to bytes32 (pad with zeros if empty or short)
+                let offtakerIdBytes32;
+                if (offtakerId && offtakerId.length > 0) {
+                    // If it looks like a hex string, use it directly
+                    if (offtakerId.startsWith('0x')) {
+                        offtakerIdBytes32 = ethers.zeroPadValue(offtakerId, 32);
+                    } else {
+                        // Convert string to bytes32
+                        offtakerIdBytes32 = ethers.encodeBytes32String(offtakerId.substring(0, 31));
+                    }
+                } else {
+                    offtakerIdBytes32 = ethers.ZeroHash; // 0x000...000
+                }
+
+                // Convert values to contract types
+                // targetFund is in IDR, we'll use it as-is (uint128)
+                const targetFundWei = BigInt(Math.floor(parseFloat(targetFund)));
+                // yieldPercent to basis points (yieldBps) - multiply by 100 to get bps from percentage
+                const yieldBps = Math.floor(parseFloat(yieldPercent) * 100);
+                // durationDays to seconds (duration is in seconds in contract)
+                const durationSeconds = parseInt(durationDays) * 24 * 60 * 60;
+
+                showStatus('invoicesStatus', 'loading', '⏳ Please confirm the transaction in MetaMask...');
+
+                // Call submitInvoice on the contract
+                const tx = await contract.submitInvoice(
+                    offtakerIdBytes32,
+                    targetFundWei,
+                    yieldBps,
+                    durationSeconds
+                );
+
+                showStatus('invoicesStatus', 'loading', `⏳ Waiting for transaction confirmation... (${tx.hash.slice(0, 10)}...)`);
+
+                // Wait for transaction to be mined
+                const receipt = await tx.wait();
+
+                // Get tokenId from the InvoiceSubmitted event
+                let tokenId = null;
+                for (const log of receipt.logs) {
+                    try {
+                        const parsedLog = contract.interface.parseLog(log);
+                        if (parsedLog && parsedLog.name === 'InvoiceSubmitted') {
+                            tokenId = parsedLog.args[0].toString(); // First indexed arg is tokenId
+                            break;
+                        }
+                    } catch (e) {
+                        // Not our event, continue
+                    }
+                }
+
+                console.log('Smart contract invoice submitted:', {
+                    txHash: receipt.hash,
+                    tokenId: tokenId,
+                    blockNumber: receipt.blockNumber
+                });
+
+                // Step 3: Create invoice in backend with the same data + tx_hash
+                showStatus('invoicesStatus', 'loading', '⏳ Creating invoice in backend...');
 
                 const payload = {
                     farm_id: farmId,
                     name: name,
                     target_fund: parseFloat(targetFund),
                     yield_percent: parseFloat(yieldPercent),
-                    duration_days: parseInt(durationDays)
+                    duration_days: parseInt(durationDays),
+                    tx_hash: receipt.hash, // Include the blockchain transaction hash
+                    token_id: tokenId ? parseInt(tokenId) : null // Include the token ID from smart contract
                 };
 
                 if (description) payload.description = description;
@@ -1494,13 +1600,18 @@
                 showResponse('invoicesResponse', data);
 
                 if (data.status === 'success') {
-                    showStatus('invoicesStatus', 'success', '✅ Invoice created successfully!');
+                    showStatus('invoicesStatus', 'success', `✅ Invoice created successfully! Token ID: ${tokenId || 'N/A'}, TX: ${receipt.hash.slice(0, 10)}...`);
                     loadInvoices();
                 } else {
-                    showStatus('invoicesStatus', 'error', `❌ ${data.message}`);
+                    showStatus('invoicesStatus', 'error', `❌ Backend error: ${data.message} (but blockchain tx succeeded: ${receipt.hash})`);
                 }
             } catch (error) {
-                showStatus('invoicesStatus', 'error', `❌ ${error.message}`);
+                console.error('Create invoice error:', error);
+                if (error.code === 'ACTION_REJECTED' || error.code === 4001) {
+                    showStatus('invoicesStatus', 'error', '❌ Transaction rejected by user');
+                } else {
+                    showStatus('invoicesStatus', 'error', `❌ ${error.message}`);
+                }
             }
         }
 
