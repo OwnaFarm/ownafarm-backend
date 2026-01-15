@@ -395,6 +395,75 @@ paths:
                 status: error
                 message: Failed to get farmers
 
+  /admin/farmers/{id}:
+    get:
+      summary: Get Farmer Detail
+      description: >-
+        Mendapatkan detail farmer beserta dokumen (dengan presigned download URL).
+      operationId: getAdminFarmerDetail
+      tags:
+        - Admin Farmer Management
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Farmer ID (UUID)
+          schema:
+            type: string
+            format: uuid
+            example: 550e8400-e29b-41d4-a716-446655440000
+      responses:
+        '200':
+          description: Farmer detail berhasil diambil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    $ref: '#/components/schemas/FarmerDetailResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Farmer ID is required
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Unauthorized
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Farmer not found
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Failed to get farmer detail
+
   /admin/farmers/{id}/approve:
     patch:
       summary: Approve Farmer
@@ -2503,6 +2572,128 @@ components:
           type: integer
           description: Total halaman
           example: 5
+
+    FarmerDetailResponse:
+      type: object
+      description: Detail lengkap farmer untuk admin
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: f1a2b3c4-d5e6-7890-abcd-ef1234567890
+        status:
+          type: string
+          enum: [pending, under_review, approved, rejected, suspended]
+          example: pending
+        full_name:
+          type: string
+          example: Budi Santoso
+        email:
+          type: string
+          format: email
+          example: budi@example.com
+        phone_number:
+          type: string
+          example: '+628123456789'
+        id_number:
+          type: string
+          description: NIK
+          example: '3201234567890123'
+        date_of_birth:
+          type: string
+          format: date
+          example: '1985-06-15'
+        address:
+          type: string
+          example: Jl. Merdeka No. 123
+        province:
+          type: string
+          example: Jawa Barat
+        city:
+          type: string
+          example: Bandung
+        district:
+          type: string
+          example: Coblong
+        postal_code:
+          type: string
+          example: '40132'
+        business_name:
+          type: string
+          nullable: true
+          example: Tani Makmur
+        business_type:
+          type: string
+          enum: [individual, cv, pt, ud, cooperative]
+          example: cv
+        npwp:
+          type: string
+          nullable: true
+          example: '12.345.678.9-123.000'
+        bank_name:
+          type: string
+          example: Bank BCA
+        bank_account_number:
+          type: string
+          example: '1234567890'
+        bank_account_name:
+          type: string
+          example: Budi Santoso
+        years_of_experience:
+          type: integer
+          example: 10
+        crops_expertise:
+          type: array
+          items:
+            type: string
+          example: [padi, jagung, cabai]
+        documents:
+          type: array
+          description: List dokumen dengan presigned download URL
+          items:
+            $ref: '#/components/schemas/FarmerDocumentItem'
+        reviewed_by:
+          type: string
+          format: uuid
+          nullable: true
+        reviewed_at:
+          type: string
+          format: date-time
+          nullable: true
+        rejection_reason:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          example: '2024-01-15T10:30:00Z'
+
+    FarmerDocumentItem:
+      type: object
+      description: Dokumen farmer dengan presigned download URL
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: doc-uuid-1
+        document_type:
+          type: string
+          description: Tipe dokumen
+          enum: [ktp_photo, selfie_with_ktp, npwp_photo, bank_statement, land_certificate, business_license]
+          example: ktp_photo
+        file_name:
+          type: string
+          nullable: true
+          example: ktp.jpg
+        download_url:
+          type: string
+          format: uri
+          description: Presigned URL untuk download (expired dalam 1 jam)
+          example: https://storage.example.com/presigned-url...
+        expires_in:
+          type: integer
+          description: Waktu expired dalam detik
+          example: 3600
 
     FarmerApproveResponse:
       type: object
