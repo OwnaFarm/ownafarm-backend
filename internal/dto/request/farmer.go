@@ -9,16 +9,17 @@ type RegisterFarmerRequest struct {
 
 // PersonalInfoRequest contains personal information for farmer registration
 type PersonalInfoRequest struct {
-	FullName    string `json:"full_name" binding:"required,max=100"`
-	Email       string `json:"email" binding:"required,email,max=255"`
-	PhoneNumber string `json:"phone_number" binding:"required,max=20"`
-	IDNumber    string `json:"id_number" binding:"required,max=20"`
-	DateOfBirth string `json:"date_of_birth" binding:"required"` // Format: YYYY-MM-DD
-	Address     string `json:"address" binding:"required"`
-	Province    string `json:"province" binding:"required,max=100"`
-	City        string `json:"city" binding:"required,max=100"`
-	District    string `json:"district" binding:"required,max=100"`
-	PostalCode  string `json:"postal_code" binding:"required,max=10"`
+	FullName      string `json:"full_name" binding:"required,max=100"`
+	Email         string `json:"email" binding:"required,email,max=255"`
+	PhoneNumber   string `json:"phone_number" binding:"required,max=20"`
+	IDNumber      string `json:"id_number" binding:"required,max=20"`
+	DateOfBirth   string `json:"date_of_birth" binding:"required"` // Format: YYYY-MM-DD
+	Address       string `json:"address" binding:"required"`
+	Province      string `json:"province" binding:"required,max=100"`
+	City          string `json:"city" binding:"required,max=100"`
+	District      string `json:"district" binding:"required,max=100"`
+	PostalCode    string `json:"postal_code" binding:"required,max=10"`
+	WalletAddress string `json:"wallet_address" binding:"required,len=42,startswith=0x"`
 }
 
 // BusinessInfoRequest contains business information for farmer registration

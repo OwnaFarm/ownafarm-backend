@@ -22,6 +22,7 @@ type FarmerRepository interface {
 	GetByUserID(userID string) (*models.Farmer, error)
 	GetByEmail(email string) (*models.Farmer, error)
 	ExistsByEmailOrPhone(email, phone string) (bool, error)
+	ExistsByWalletAddress(walletAddress string) (bool, error)
 	CreateDocuments(documents []models.FarmerDocument) error
 	GetAllWithPagination(filter FarmerFilter) ([]models.Farmer, int64, error)
 	Update(farmer *models.Farmer) error
@@ -64,6 +65,18 @@ func (r *farmerRepository) ExistsByEmailOrPhone(email, phone string) (bool, erro
 	var count int64
 	err := r.db.Model(&models.Farmer{}).
 		Where("email = ? OR phone_number = ?", email, phone).
+		Count(&count).Error
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+// ExistsByWalletAddress checks if a farmer with the given wallet address already exists
+func (r *farmerRepository) ExistsByWalletAddress(walletAddress string) (bool, error) {
+	var count int64
+	err := r.db.Model(&models.Farmer{}).
+		Where("wallet_address = ?", walletAddress).
 		Count(&count).Error
 	if err != nil {
 		return false, err

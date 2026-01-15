@@ -150,7 +150,8 @@ Mendaftarkan petani baru dengan data lengkap dan dokumen yang sudah diupload.
     "province": "Jawa Barat",
     "city": "Bandung",
     "district": "Coblong",
-    "postal_code": "40132"
+    "postal_code": "40132",
+    "wallet_address": "0x742d35Cc6634C0532925a3b844BC9e7595f7CCCC"
   },
   "business_info": {
     "business_name": "Tani Makmur",
@@ -197,6 +198,7 @@ Mendaftarkan petani baru dengan data lengkap dan dokumen yang sudah diupload.
 | `city` | string | ✅ | max 100 char | Kota/Kabupaten |
 | `district` | string | ✅ | max 100 char | Kecamatan |
 | `postal_code` | string | ✅ | max 10 char | Kode pos |
+| `wallet_address` | string | ✅ | exactly 42 char, starts with 0x | Ethereum wallet address untuk login via signature |
 
 **Business Info (Required)**
 
@@ -746,6 +748,7 @@ Mendapatkan detail invoice berdasarkan ID.
 | `404` | `Farm not found` | Farm tidak ditemukan |
 | `404` | `Invoice not found` | Invoice tidak ditemukan |
 | `409` | `Farmer with this email or phone number already exists` | Email/phone sudah terdaftar |
+| `409` | `Farmer with this wallet address already exists` | Wallet address sudah terdaftar |
 | `500` | `Internal server error` | Error server |
 
 ---

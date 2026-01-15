@@ -38,6 +38,7 @@ type ListFarmerResponse struct {
 type FarmerListItem struct {
 	ID                string     `json:"id"`
 	Status            string     `json:"status"`
+	WalletAddress     string     `json:"wallet_address"`
 	FullName          string     `json:"full_name"`
 	Email             string     `json:"email"`
 	PhoneNumber       string     `json:"phone_number"`
@@ -62,6 +63,7 @@ type PaginationMeta struct {
 type FarmerDetailResponse struct {
 	ID                string               `json:"id"`
 	Status            string               `json:"status"`
+	WalletAddress     string               `json:"wallet_address"`
 	FullName          string               `json:"full_name"`
 	Email             string               `json:"email"`
 	PhoneNumber       string               `json:"phone_number"`

@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -17,13 +19,18 @@ import (
 
 // Errors for FarmerService
 var (
-	ErrFarmerAlreadyExists     = errors.New("farmer with this email or phone already exists")
-	ErrInvalidDateFormat       = errors.New("invalid date format, expected YYYY-MM-DD")
-	ErrFarmerNotFound          = errors.New("farmer not found")
-	ErrDocumentNotFound        = errors.New("document not found")
-	ErrInvalidStatusTransition = errors.New("invalid status transition")
-	ErrFarmerAlreadyProcessed  = errors.New("farmer has already been processed")
+	ErrFarmerAlreadyExists        = errors.New("farmer with this email or phone already exists")
+	ErrWalletAddressAlreadyExists = errors.New("farmer with this wallet address already exists")
+	ErrInvalidWalletAddress       = errors.New("invalid wallet address format")
+	ErrInvalidDateFormat          = errors.New("invalid date format, expected YYYY-MM-DD")
+	ErrFarmerNotFound             = errors.New("farmer not found")
+	ErrDocumentNotFound           = errors.New("document not found")
+	ErrInvalidStatusTransition    = errors.New("invalid status transition")
+	ErrFarmerAlreadyProcessed     = errors.New("farmer has already been processed")
 )
+
+// walletAddressRegex validates Ethereum wallet address format (0x + 40 hex chars)
+var walletAddressRegex = regexp.MustCompile(`^0x[0-9a-fA-F]{40}$`)
 
 // FarmerServiceInterface defines the interface for farmer operations
 type FarmerServiceInterface interface {
@@ -58,7 +65,22 @@ func NewFarmerService(
 
 // Register registers a new farmer
 func (s *FarmerService) Register(ctx context.Context, req *request.RegisterFarmerRequest) (*models.Farmer, error) {
-	// Check if farmer already exists
+	// Normalize and validate wallet address
+	walletAddress := strings.ToLower(req.PersonalInfo.WalletAddress)
+	if !walletAddressRegex.MatchString(walletAddress) {
+		return nil, ErrInvalidWalletAddress
+	}
+
+	// Check if wallet address already exists
+	walletExists, err := s.farmerRepo.ExistsByWalletAddress(walletAddress)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check existing wallet address: %w", err)
+	}
+	if walletExists {
+		return nil, ErrWalletAddressAlreadyExists
+	}
+
+	// Check if farmer already exists by email or phone
 	exists, err := s.farmerRepo.ExistsByEmailOrPhone(
 		req.PersonalInfo.Email,
 		req.PersonalInfo.PhoneNumber,
@@ -78,7 +100,8 @@ func (s *FarmerService) Register(ctx context.Context, req *request.RegisterFarme
 
 	// Build farmer model
 	farmer := &models.Farmer{
-		Status: models.FarmerStatusPending,
+		Status:        models.FarmerStatusPending,
+		WalletAddress: walletAddress,
 
 		// Personal Info
 		FullName:    req.PersonalInfo.FullName,
@@ -234,6 +257,7 @@ func (s *FarmerService) GetListForAdmin(ctx context.Context, req *request.ListFa
 		farmerItems = append(farmerItems, response.FarmerListItem{
 			ID:                farmer.ID,
 			Status:            string(farmer.Status),
+			WalletAddress:     farmer.WalletAddress,
 			FullName:          farmer.FullName,
 			Email:             farmer.Email,
 			PhoneNumber:       farmer.PhoneNumber,
@@ -306,6 +330,7 @@ func (s *FarmerService) GetDetailForAdmin(ctx context.Context, farmerID string) 
 	return &response.FarmerDetailResponse{
 		ID:                farmer.ID,
 		Status:            string(farmer.Status),
+		WalletAddress:     farmer.WalletAddress,
 		FullName:          farmer.FullName,
 		Email:             farmer.Email,
 		PhoneNumber:       farmer.PhoneNumber,

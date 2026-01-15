@@ -2502,6 +2502,11 @@ components:
             - rejected
             - suspended
           example: pending
+        wallet_address:
+          type: string
+          pattern: ^0x[0-9a-fA-F]{40}$
+          description: Ethereum wallet address untuk login
+          example: '0x742d35cc6634c0532925a3b844bc9e7595f7cccc'
         full_name:
           type: string
           description: Nama lengkap farmer
@@ -2585,6 +2590,11 @@ components:
           type: string
           enum: [pending, under_review, approved, rejected, suspended]
           example: pending
+        wallet_address:
+          type: string
+          pattern: ^0x[0-9a-fA-F]{40}$
+          description: Ethereum wallet address untuk login
+          example: '0x742d35cc6634c0532925a3b844bc9e7595f7cccc'
         full_name:
           type: string
           example: Budi Santoso
@@ -2837,6 +2847,7 @@ components:
         - city
         - district
         - postal_code
+        - wallet_address
       properties:
         full_name:
           type: string
@@ -2888,6 +2899,13 @@ components:
           maxLength: 10
           description: Kode pos
           example: '40132'
+        wallet_address:
+          type: string
+          pattern: ^0x[0-9a-fA-F]{40}$
+          minLength: 42
+          maxLength: 42
+          description: Ethereum wallet address untuk login via signature
+          example: '0x742d35Cc6634C0532925a3b844BC9e7595f7CCCC'
 
     BusinessInfo:
       type: object

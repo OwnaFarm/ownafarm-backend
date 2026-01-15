@@ -30,9 +30,10 @@ const (
 
 // Farmer represents the farmers table in the database
 type Farmer struct {
-	ID     string       `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	UserID *string      `gorm:"type:uuid" json:"user_id,omitempty"`
-	Status FarmerStatus `gorm:"type:farmer_status;default:pending" json:"status"`
+	ID            string       `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	UserID        *string      `gorm:"type:uuid" json:"user_id,omitempty"`
+	Status        FarmerStatus `gorm:"type:farmer_status;default:pending" json:"status"`
+	WalletAddress string       `gorm:"type:varchar(42);not null;uniqueIndex" json:"wallet_address"`
 
 	// Step 1: Personal Info
 	FullName    string    `gorm:"type:varchar(100);not null" json:"full_name"`
