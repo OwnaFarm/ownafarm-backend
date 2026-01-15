@@ -17,12 +17,12 @@ import (
 
 // Errors for FarmerService
 var (
-	ErrFarmerAlreadyExists      = errors.New("farmer with this email or phone already exists")
-	ErrInvalidDateFormat        = errors.New("invalid date format, expected YYYY-MM-DD")
-	ErrFarmerNotFound           = errors.New("farmer not found")
-	ErrDocumentNotFound         = errors.New("document not found")
-	ErrInvalidStatusTransition  = errors.New("invalid status transition")
-	ErrFarmerAlreadyProcessed   = errors.New("farmer has already been processed")
+	ErrFarmerAlreadyExists     = errors.New("farmer with this email or phone already exists")
+	ErrInvalidDateFormat       = errors.New("invalid date format, expected YYYY-MM-DD")
+	ErrFarmerNotFound          = errors.New("farmer not found")
+	ErrDocumentNotFound        = errors.New("document not found")
+	ErrInvalidStatusTransition = errors.New("invalid status transition")
+	ErrFarmerAlreadyProcessed  = errors.New("farmer has already been processed")
 )
 
 // FarmerServiceInterface defines the interface for farmer operations
@@ -31,6 +31,7 @@ type FarmerServiceInterface interface {
 	GeneratePresignedURLs(ctx context.Context, documentTypes []string) (*response.PresignDocumentsResponse, error)
 	GetDocumentDownloadURL(ctx context.Context, farmerID, documentID string) (*response.DocumentDownloadURLResponse, error)
 	GetListForAdmin(ctx context.Context, req *request.ListFarmerRequest) (*response.ListFarmerResponse, error)
+	GetDetailForAdmin(ctx context.Context, farmerID string) (*response.FarmerDetailResponse, error)
 	ApproveFarmer(ctx context.Context, farmerID, adminID, ipAddress, userAgent string) (*response.FarmerStatusUpdateResponse, error)
 	RejectFarmer(ctx context.Context, farmerID, adminID string, reason *string, ipAddress, userAgent string) (*response.FarmerStatusUpdateResponse, error)
 }
@@ -260,6 +261,74 @@ func (s *FarmerService) GetListForAdmin(ctx context.Context, req *request.ListFa
 			TotalItems: totalCount,
 			TotalPages: totalPages,
 		},
+	}, nil
+}
+
+// GetDetailForAdmin retrieves farmer detail with documents for admin
+func (s *FarmerService) GetDetailForAdmin(ctx context.Context, farmerID string) (*response.FarmerDetailResponse, error) {
+	// Get farmer with documents
+	farmer, err := s.farmerRepo.GetByID(farmerID)
+	if err != nil {
+		return nil, ErrFarmerNotFound
+	}
+
+	// Generate presigned download URLs for all documents
+	documents := make([]response.FarmerDocumentItem, 0, len(farmer.Documents))
+	for _, doc := range farmer.Documents {
+		downloadURL, err := s.storageService.GetPresignedDownloadURL(ctx, doc.FileURL, 1*time.Hour)
+		if err != nil {
+			// Log error but continue with empty URL
+			downloadURL = ""
+		}
+
+		documents = append(documents, response.FarmerDocumentItem{
+			ID:           doc.ID,
+			DocumentType: string(doc.DocumentType),
+			FileName:     doc.FileName,
+			DownloadURL:  downloadURL,
+			ExpiresIn:    3600, // 1 hour
+		})
+	}
+
+	// Format dates
+	var reviewedAt *string
+	if farmer.ReviewedAt != nil {
+		formatted := farmer.ReviewedAt.Format(time.RFC3339)
+		reviewedAt = &formatted
+	}
+
+	// Convert crops expertise
+	cropsExpertise := make([]string, len(farmer.CropsExpertise))
+	for i, crop := range farmer.CropsExpertise {
+		cropsExpertise[i] = crop
+	}
+
+	return &response.FarmerDetailResponse{
+		ID:                farmer.ID,
+		Status:            string(farmer.Status),
+		FullName:          farmer.FullName,
+		Email:             farmer.Email,
+		PhoneNumber:       farmer.PhoneNumber,
+		IDNumber:          farmer.IDNumber,
+		DateOfBirth:       farmer.DateOfBirth.Format("2006-01-02"),
+		Address:           farmer.Address,
+		Province:          farmer.Province,
+		City:              farmer.City,
+		District:          farmer.District,
+		PostalCode:        farmer.PostalCode,
+		BusinessName:      farmer.BusinessName,
+		BusinessType:      string(farmer.BusinessType),
+		NPWP:              farmer.NPWP,
+		BankName:          farmer.BankName,
+		BankAccountNumber: farmer.BankAccountNumber,
+		BankAccountName:   farmer.BankAccountName,
+		YearsOfExperience: farmer.YearsOfExperience,
+		CropsExpertise:    cropsExpertise,
+		Documents:         documents,
+		ReviewedBy:        farmer.ReviewedBy,
+		ReviewedAt:        reviewedAt,
+		RejectionReason:   farmer.RejectionReason,
+		CreatedAt:         farmer.CreatedAt.Format(time.RFC3339),
 	}, nil
 }
 

@@ -77,6 +77,7 @@ func SetupRoutes(
 	{
 		// Farmer management
 		admin.GET("/farmers", farmerHandler.GetListForAdmin)
+		admin.GET("/farmers/:id", farmerHandler.GetDetailForAdmin)
 		admin.PATCH("/farmers/:id/approve", farmerHandler.ApproveFarmer)
 		admin.PATCH("/farmers/:id/reject", farmerHandler.RejectFarmer)
 
