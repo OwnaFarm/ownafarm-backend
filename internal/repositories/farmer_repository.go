@@ -180,10 +180,10 @@ func (r *farmerRepository) GetByUserID(userID string) (*models.Farmer, error) {
 	return &farmer, nil
 }
 
-// GetByWalletAddress retrieves a farmer by wallet address
+// GetByWalletAddress retrieves a farmer by wallet address (case-insensitive)
 func (r *farmerRepository) GetByWalletAddress(walletAddress string) (*models.Farmer, error) {
 	var farmer models.Farmer
-	if err := r.db.First(&farmer, "wallet_address = ?", walletAddress).Error; err != nil {
+	if err := r.db.First(&farmer, "LOWER(wallet_address) = LOWER(?)", walletAddress).Error; err != nil {
 		return nil, err
 	}
 	return &farmer, nil

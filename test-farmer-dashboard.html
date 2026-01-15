@@ -1,0 +1,1585 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OwnAFarm - Farmer Dashboard</title>
+    <style>
+        :root {
+            --primary: #10b981;
+            --primary-dark: #059669;
+            --secondary: #1e293b;
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --success: #22c55e;
+            --error: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --border: #334155;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #1a2332 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1100px;
+            width: 100%;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary) 0%, #34d399 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border);
+            margin-bottom: 24px;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .step-badge {
+            background: var(--primary);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px -10px rgba(16, 185, 129, 0.5);
+        }
+
+        .btn-secondary {
+            background: var(--secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #2d3b50;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+
+        .btn-block {
+            width: 100%;
+        }
+
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 0.85rem;
+        }
+
+        /* Wallet indicator */
+        .wallet-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 20px;
+            font-size: 0.85rem;
+        }
+
+        .wallet-indicator .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+        }
+
+        .wallet-indicator.disconnected {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .wallet-indicator.disconnected .dot {
+            background: var(--error);
+        }
+
+        .header-actions {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        /* Status */
+        .status {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .status.show {
+            display: block;
+        }
+
+        .status.success {
+            background: rgba(34, 197, 94, 0.15);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: var(--success);
+        }
+
+        .status.error {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: var(--error);
+        }
+
+        .status.loading {
+            background: rgba(245, 158, 11, 0.15);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            color: var(--warning);
+        }
+
+        /* Response box */
+        .response-box {
+            background: #0d1117;
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 16px;
+            font-family: 'SF Mono', 'Consolas', monospace;
+            font-size: 0.8rem;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            display: none;
+        }
+
+        .response-box.show {
+            display: block;
+        }
+
+        /* API info */
+        .api-info {
+            background: rgba(71, 85, 105, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 16px;
+            font-size: 0.85rem;
+        }
+
+        .api-method {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.75rem;
+            margin-right: 8px;
+        }
+
+        .api-method.get {
+            background: #3b82f6;
+        }
+
+        .api-method.post {
+            background: #22c55e;
+        }
+
+        .api-method.put {
+            background: #f59e0b;
+        }
+
+        .api-method.delete {
+            background: #ef4444;
+        }
+
+        .api-endpoint {
+            font-family: 'SF Mono', 'Consolas', monospace;
+            color: var(--text-secondary);
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 16px;
+        }
+
+        .tab-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px 8px 0 0;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Tables */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .data-table th {
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .data-table tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* Status badge */
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-badge.pending {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+
+        .status-badge.approved {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+
+        .status-badge.rejected {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .status-badge.active {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+
+        /* Profile section */
+        .profile-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        .profile-item {
+            margin-bottom: 12px;
+        }
+
+        .profile-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .profile-value {
+            font-size: 0.95rem;
+            color: var(--text-primary);
+        }
+
+        /* Form */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        label .required {
+            color: var(--error);
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #0d1117;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            transition: border-color 0.2s;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        /* File input */
+        .file-input-wrapper {
+            position: relative;
+        }
+
+        .file-input-wrapper input[type="file"] {
+            display: none;
+        }
+
+        .file-input-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 16px;
+            background: #0d1117;
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .file-input-btn:hover {
+            border-color: var(--primary);
+        }
+
+        .file-input-btn.has-file {
+            border-color: var(--success);
+            background: rgba(34, 197, 94, 0.1);
+        }
+
+        .file-name {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 8px;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 600px;
+            width: 90%;
+            border: 1px solid var(--border);
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-overlay.show .modal {
+            transform: scale(1);
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 24px;
+        }
+
+        .modal-body {
+            margin-bottom: 24px;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
+        /* Toolbar */
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        footer {
+            margin-top: 40px;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        footer a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .profile-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">🌾 OwnAFarm</div>
+            <p class="subtitle">Farmer Dashboard</p>
+            <div class="header-actions">
+                <div class="wallet-indicator disconnected" id="walletIndicator">
+                    <span class="dot"></span>
+                    <span id="walletStatus">Not Connected</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Step 1: Login -->
+        <div class="card" id="loginCard">
+            <div class="card-title">
+                <span class="step-badge">Step 1</span>
+                Farmer Login (Wallet Signature)
+            </div>
+            <div class="api-info">
+                <span class="api-method get">GET</span>
+                <span class="api-endpoint">/farmer/auth/nonce</span>
+                <span style="margin: 0 8px;">→</span>
+                <span class="api-method post">POST</span>
+                <span class="api-endpoint">/farmer/auth/login</span>
+            </div>
+            <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                Connect your wallet and sign a message to login as a farmer. Make sure your farmer account is approved.
+            </p>
+
+            <button class="btn btn-primary btn-block" id="connectBtn" onclick="connectAndLogin()">
+                🔐 Connect Wallet & Login
+            </button>
+            <div class="status" id="loginStatus"></div>
+            <div class="response-box" id="loginResponse"></div>
+        </div>
+
+        <!-- Dashboard (hidden until login) -->
+        <div class="card" id="dashboardCard" style="display: none;">
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('profile')">👤 Profile</button>
+                <button class="tab-btn" onclick="switchTab('farms')">🏡 Farms</button>
+                <button class="tab-btn" onclick="switchTab('invoices')">📄 Invoices</button>
+            </div>
+
+            <!-- Profile Tab -->
+            <div class="tab-content active" id="profileTab">
+                <div class="api-info">
+                    <span class="api-method get">GET</span>
+                    <span class="api-endpoint">/farmer/me</span>
+                </div>
+                <div id="profileContent">
+                    <div class="empty-state">Loading profile...</div>
+                </div>
+                <div class="status" id="profileStatus"></div>
+                <div class="response-box" id="profileResponse"></div>
+            </div>
+
+            <!-- Farms Tab -->
+            <div class="tab-content" id="farmsTab">
+                <div class="api-info">
+                    <span class="api-method get">GET</span>
+                    <span class="api-endpoint">/farmer/farms</span>
+                    <span style="margin: 0 8px;">|</span>
+                    <span class="api-method post">POST</span>
+                    <span class="api-endpoint">/farmer/farms</span>
+                    <span style="margin: 0 8px;">|</span>
+                    <span class="api-method put">PUT</span>
+                    <span class="api-endpoint">/farmer/farms/:id</span>
+                    <span style="margin: 0 8px;">|</span>
+                    <span class="api-method delete">DELETE</span>
+                    <span class="api-endpoint">/farmer/farms/:id</span>
+                </div>
+                <div class="toolbar">
+                    <button class="btn btn-secondary btn-sm" onclick="loadFarms()">🔄 Refresh</button>
+                    <button class="btn btn-success btn-sm" onclick="openCreateFarmModal()">➕ Add Farm</button>
+                </div>
+                <div id="farmsContent">
+                    <div class="empty-state">Click "Refresh" to load farms</div>
+                </div>
+                <div class="status" id="farmsStatus"></div>
+                <div class="response-box" id="farmsResponse"></div>
+            </div>
+
+            <!-- Invoices Tab -->
+            <div class="tab-content" id="invoicesTab">
+                <div class="api-info">
+                    <span class="api-method get">GET</span>
+                    <span class="api-endpoint">/farmer/invoices</span>
+                    <span style="margin: 0 8px;">|</span>
+                    <span class="api-method post">POST</span>
+                    <span class="api-endpoint">/farmer/invoices</span>
+                </div>
+                <div class="toolbar">
+                    <button class="btn btn-secondary btn-sm" onclick="loadInvoices()">🔄 Refresh</button>
+                    <button class="btn btn-success btn-sm" onclick="openCreateInvoiceModal()">➕ Create Invoice</button>
+                </div>
+                <div id="invoicesContent">
+                    <div class="empty-state">Click "Refresh" to load invoices</div>
+                </div>
+                <div class="status" id="invoicesStatus"></div>
+                <div class="response-box" id="invoicesResponse"></div>
+            </div>
+        </div>
+
+        <footer>
+            <p>API Base URL: <a href="https://ownafarm-backend-production.up.railway.app"
+                    target="_blank">https://ownafarm-backend-production.up.railway.app</a></p>
+            <p style="margin-top: 8px;">Made for OwnAFarm Backend Testing</p>
+        </footer>
+    </div>
+
+    <!-- Create Farm Modal -->
+    <div class="modal-overlay" id="createFarmModal">
+        <div class="modal">
+            <div class="modal-title">🏡 Create New Farm</div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Farm Name <span class="required">*</span></label>
+                    <input type="text" id="farmName" placeholder="e.g., Sawah Makmur">
+                </div>
+                <div class="form-group">
+                    <label>Location <span class="required">*</span></label>
+                    <input type="text" id="farmLocation" placeholder="e.g., Bandung, Jawa Barat">
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="farmDescription" placeholder="Description of your farm..."></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Latitude</label>
+                        <input type="number" id="farmLatitude" step="any" placeholder="-6.9175">
+                    </div>
+                    <div class="form-group">
+                        <label>Longitude</label>
+                        <input type="number" id="farmLongitude" step="any" placeholder="107.6191">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Land Area (hectares)</label>
+                    <input type="number" id="farmLandArea" step="0.01" min="0" placeholder="5.5">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('createFarmModal')">Cancel</button>
+                <button class="btn btn-success" onclick="createFarm()">Create Farm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Farm Modal -->
+    <div class="modal-overlay" id="editFarmModal">
+        <div class="modal">
+            <div class="modal-title">✏️ Edit Farm</div>
+            <div class="modal-body">
+                <input type="hidden" id="editFarmId">
+                <div class="form-group">
+                    <label>Farm Name</label>
+                    <input type="text" id="editFarmName" placeholder="e.g., Sawah Makmur">
+                </div>
+                <div class="form-group">
+                    <label>Location</label>
+                    <input type="text" id="editFarmLocation" placeholder="e.g., Bandung, Jawa Barat">
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="editFarmDescription" placeholder="Description of your farm..."></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Latitude</label>
+                        <input type="number" id="editFarmLatitude" step="any" placeholder="-6.9175">
+                    </div>
+                    <div class="form-group">
+                        <label>Longitude</label>
+                        <input type="number" id="editFarmLongitude" step="any" placeholder="107.6191">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Land Area (hectares)</label>
+                    <input type="number" id="editFarmLandArea" step="0.01" min="0" placeholder="5.5">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('editFarmModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="updateFarm()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Farm Modal -->
+    <div class="modal-overlay" id="deleteFarmModal">
+        <div class="modal">
+            <div class="modal-title">⚠️ Delete Farm</div>
+            <div class="modal-body">
+                <input type="hidden" id="deleteFarmId">
+                <p style="color: var(--text-secondary);">
+                    Are you sure you want to delete this farm? This action cannot be undone.
+                </p>
+                <p style="margin-top: 12px; color: var(--error);" id="deleteFarmName"></p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('deleteFarmModal')">Cancel</button>
+                <button class="btn btn-danger" onclick="deleteFarm()">Delete Farm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Invoice Modal -->
+    <div class="modal-overlay" id="createInvoiceModal">
+        <div class="modal">
+            <div class="modal-title">📄 Create New Invoice</div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Select Farm <span class="required">*</span></label>
+                    <select id="invoiceFarmId">
+                        <option value="">-- Select a farm --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Invoice Name <span class="required">*</span></label>
+                    <input type="text" id="invoiceName" placeholder="e.g., Panen Padi Q1 2026">
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="invoiceDescription" placeholder="Description of the invoice..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Invoice Image</label>
+                    <div class="file-input-wrapper">
+                        <input type="file" id="invoiceImage" accept="image/jpeg,image/png,image/webp"
+                            onchange="updateInvoiceFileName()">
+                        <div class="file-input-btn" onclick="document.getElementById('invoiceImage').click()">
+                            📷 Choose Image
+                        </div>
+                        <div class="file-name" id="invoiceFileName">No file selected</div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Target Fund (IDR) <span class="required">*</span></label>
+                        <input type="number" id="invoiceTargetFund" min="1" placeholder="100000000">
+                    </div>
+                    <div class="form-group">
+                        <label>Yield Percent (%) <span class="required">*</span></label>
+                        <input type="number" id="invoiceYieldPercent" min="0.1" max="100" step="0.1" placeholder="15">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Duration (days) <span class="required">*</span></label>
+                    <input type="number" id="invoiceDurationDays" min="1" placeholder="90">
+                </div>
+                <div class="form-group">
+                    <label>Offtaker ID</label>
+                    <input type="text" id="invoiceOfftakerId" placeholder="Optional offtaker identifier">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('createInvoiceModal')">Cancel</button>
+                <button class="btn btn-success" onclick="createInvoice()">Create Invoice</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invoice Detail Modal -->
+    <div class="modal-overlay" id="invoiceDetailModal">
+        <div class="modal">
+            <div class="modal-title">📄 Invoice Details</div>
+            <div class="modal-body" id="invoiceDetailContent">
+                <div class="empty-state">Loading...</div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('invoiceDetailModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://ownafarm-backend-production.up.railway.app';
+        let authToken = null;
+        let farmerData = null;
+        let farmsCache = [];
+        let invoiceImageKey = null;
+
+        // Helper functions
+        function showStatus(elementId, type, message) {
+            const el = document.getElementById(elementId);
+            el.className = `status show ${type}`;
+            el.textContent = message;
+        }
+
+        function hideStatus(elementId) {
+            document.getElementById(elementId).className = 'status';
+        }
+
+        function showResponse(elementId, data) {
+            const el = document.getElementById(elementId);
+            el.textContent = JSON.stringify(data, null, 2);
+            el.className = 'response-box show';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('show');
+        }
+
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.add('show');
+        }
+
+        // Tab switching
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+
+            document.querySelector(`[onclick="switchTab('${tabName}')"]`).classList.add('active');
+            document.getElementById(`${tabName}Tab`).classList.add('active');
+
+            // Load data when switching tabs
+            if (tabName === 'farms') loadFarms();
+            if (tabName === 'invoices') loadInvoices();
+        }
+
+        // =============== LOGIN ===============
+        async function connectAndLogin() {
+            const btn = document.getElementById('connectBtn');
+            const indicator = document.getElementById('walletIndicator');
+            const status = document.getElementById('walletStatus');
+
+            if (typeof window.ethereum === 'undefined') {
+                showStatus('loginStatus', 'error', '❌ MetaMask is not installed');
+                return;
+            }
+
+            try {
+                btn.disabled = true;
+                showStatus('loginStatus', 'loading', '⏳ Connecting wallet...');
+
+                // Connect wallet
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                const walletAddress = accounts[0];
+
+                indicator.classList.remove('disconnected');
+                status.textContent = walletAddress.slice(0, 6) + '...' + walletAddress.slice(-4);
+
+                showStatus('loginStatus', 'loading', '⏳ Getting nonce...');
+
+                // Get nonce
+                const nonceRes = await fetch(`${API_BASE}/farmer/auth/nonce?wallet_address=${walletAddress}`);
+                const nonceData = await nonceRes.json();
+
+                if (nonceData.status !== 'success') {
+                    throw new Error(nonceData.message || 'Failed to get nonce');
+                }
+
+                const { nonce, message } = nonceData.data;
+
+                showStatus('loginStatus', 'loading', '⏳ Please sign the message...');
+
+                // Build EIP-712 typed data for signing
+                const typedData = {
+                    types: {
+                        EIP712Domain: [
+                            { name: 'name', type: 'string' },
+                            { name: 'version', type: 'string' },
+                            { name: 'chainId', type: 'uint256' }
+                        ],
+                        Login: [
+                            { name: 'message', type: 'string' }
+                        ]
+                    },
+                    primaryType: 'Login',
+                    domain: {
+                        name: 'OwnaFarm',
+                        version: '1',
+                        chainId: 5003 // Mantle chain ID
+                    },
+                    message: {
+                        message: message
+                    }
+                };
+
+                // Sign with EIP-712 typed data
+                const signature = await window.ethereum.request({
+                    method: 'eth_signTypedData_v4',
+                    params: [walletAddress, JSON.stringify(typedData)]
+                });
+
+                showStatus('loginStatus', 'loading', '⏳ Logging in...');
+
+                // Login
+                const loginRes = await fetch(`${API_BASE}/farmer/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        wallet_address: walletAddress,
+                        signature: signature,
+                        nonce: nonce
+                    })
+                });
+
+                const loginData = await loginRes.json();
+                showResponse('loginResponse', loginData);
+
+                if (loginData.status === 'success') {
+                    authToken = loginData.data.token;
+                    farmerData = loginData.data.farmer;
+
+                    showStatus('loginStatus', 'success', '✅ Login successful!');
+                    btn.textContent = '✅ Logged In';
+
+                    // Show dashboard
+                    document.getElementById('dashboardCard').style.display = 'block';
+                    loadProfile();
+                } else {
+                    throw new Error(loginData.message || 'Login failed');
+                }
+
+            } catch (error) {
+                showStatus('loginStatus', 'error', `❌ ${error.message}`);
+                btn.disabled = false;
+            }
+        }
+
+        // =============== PROFILE ===============
+        async function loadProfile() {
+            try {
+                showStatus('profileStatus', 'loading', '⏳ Loading profile...');
+
+                const res = await fetch(`${API_BASE}/farmer/me`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                const data = await res.json();
+                showResponse('profileResponse', data);
+
+                if (data.status === 'success') {
+                    hideStatus('profileStatus');
+                    renderProfile(data.data);
+                } else {
+                    showStatus('profileStatus', 'error', `❌ ${data.message}`);
+                }
+            } catch (error) {
+                showStatus('profileStatus', 'error', `❌ ${error.message}`);
+            }
+        }
+
+        function renderProfile(farmer) {
+            document.getElementById('profileContent').innerHTML = `
+                <div class="profile-grid">
+                    <div class="profile-item">
+                        <div class="profile-label">Farmer ID</div>
+                        <div class="profile-value">${farmer.id}</div>
+                    </div>
+                    <div class="profile-item">
+                        <div class="profile-label">Status</div>
+                        <div class="profile-value"><span class="status-badge ${farmer.status}">${farmer.status}</span></div>
+                    </div>
+                    <div class="profile-item">
+                        <div class="profile-label">Full Name</div>
+                        <div class="profile-value">${farmer.full_name}</div>
+                    </div>
+                    <div class="profile-item">
+                        <div class="profile-label">Email</div>
+                        <div class="profile-value">${farmer.email}</div>
+                    </div>
+                    <div class="profile-item">
+                        <div class="profile-label">Phone</div>
+                        <div class="profile-value">${farmer.phone_number || '-'}</div>
+                    </div>
+                    <div class="profile-item">
+                        <div class="profile-label">Wallet Address</div>
+                        <div class="profile-value" style="font-size: 0.8rem; word-break: break-all;">${farmer.wallet_address}</div>
+                    </div>
+                    <div class="profile-item">
+                        <div class="profile-label">Business Name</div>
+                        <div class="profile-value">${farmer.business_name || '-'}</div>
+                    </div>
+                    <div class="profile-item">
+                        <div class="profile-label">Business Type</div>
+                        <div class="profile-value">${farmer.business_type || '-'}</div>
+                    </div>
+                    <div class="profile-item">
+                        <div class="profile-label">Location</div>
+                        <div class="profile-value">${farmer.city || ''}, ${farmer.province || ''}</div>
+                    </div>
+                    <div class="profile-item">
+                        <div class="profile-label">Years of Experience</div>
+                        <div class="profile-value">${farmer.years_of_experience || 0} years</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // =============== FARMS ===============
+        async function loadFarms() {
+            try {
+                showStatus('farmsStatus', 'loading', '⏳ Loading farms...');
+
+                const res = await fetch(`${API_BASE}/farmer/farms`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                const data = await res.json();
+                showResponse('farmsResponse', data);
+
+                if (data.status === 'success') {
+                    hideStatus('farmsStatus');
+                    farmsCache = data.data.farms || [];
+                    renderFarms(farmsCache);
+                } else {
+                    showStatus('farmsStatus', 'error', `❌ ${data.message}`);
+                }
+            } catch (error) {
+                showStatus('farmsStatus', 'error', `❌ ${error.message}`);
+            }
+        }
+
+        function renderFarms(farms) {
+            if (!farms || farms.length === 0) {
+                document.getElementById('farmsContent').innerHTML = `
+                    <div class="empty-state">
+                        <p>🏡 No farms found</p>
+                        <p style="margin-top: 8px;">Click "Add Farm" to create your first farm</p>
+                    </div>
+                `;
+                return;
+            }
+
+            document.getElementById('farmsContent').innerHTML = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Location</th>
+                            <th>Land Area</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${farms.map(farm => `
+                            <tr>
+                                <td>${farm.name}</td>
+                                <td>${farm.location}</td>
+                                <td>${farm.land_area ? farm.land_area + ' ha' : '-'}</td>
+                                <td><span class="status-badge ${farm.is_active ? 'active' : 'pending'}">${farm.is_active ? 'Active' : 'Inactive'}</span></td>
+                                <td class="action-buttons">
+                                    <button class="btn btn-secondary btn-sm" onclick="openEditFarmModal('${farm.id}')">✏️</button>
+                                    <button class="btn btn-danger btn-sm" onclick="openDeleteFarmModal('${farm.id}', '${farm.name}')">🗑️</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function openCreateFarmModal() {
+            document.getElementById('farmName').value = '';
+            document.getElementById('farmLocation').value = '';
+            document.getElementById('farmDescription').value = '';
+            document.getElementById('farmLatitude').value = '';
+            document.getElementById('farmLongitude').value = '';
+            document.getElementById('farmLandArea').value = '';
+            openModal('createFarmModal');
+        }
+
+        async function createFarm() {
+            const name = document.getElementById('farmName').value.trim();
+            const location = document.getElementById('farmLocation').value.trim();
+            const description = document.getElementById('farmDescription').value.trim();
+            const latitude = document.getElementById('farmLatitude').value;
+            const longitude = document.getElementById('farmLongitude').value;
+            const landArea = document.getElementById('farmLandArea').value;
+
+            if (!name || !location) {
+                alert('Name and Location are required');
+                return;
+            }
+
+            try {
+                showStatus('farmsStatus', 'loading', '⏳ Creating farm...');
+                closeModal('createFarmModal');
+
+                const payload = { name, location };
+                if (description) payload.description = description;
+                if (latitude) payload.latitude = parseFloat(latitude);
+                if (longitude) payload.longitude = parseFloat(longitude);
+                if (landArea) payload.land_area = parseFloat(landArea);
+
+                const res = await fetch(`${API_BASE}/farmer/farms`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+                showResponse('farmsResponse', data);
+
+                if (data.status === 'success') {
+                    showStatus('farmsStatus', 'success', '✅ Farm created successfully!');
+                    loadFarms();
+                } else {
+                    showStatus('farmsStatus', 'error', `❌ ${data.message}`);
+                }
+            } catch (error) {
+                showStatus('farmsStatus', 'error', `❌ ${error.message}`);
+            }
+        }
+
+        async function openEditFarmModal(farmId) {
+            try {
+                showStatus('farmsStatus', 'loading', '⏳ Loading farm details...');
+
+                const res = await fetch(`${API_BASE}/farmer/farms/${farmId}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                const data = await res.json();
+
+                if (data.status === 'success') {
+                    hideStatus('farmsStatus');
+                    const farm = data.data.farm;
+
+                    document.getElementById('editFarmId').value = farm.id;
+                    document.getElementById('editFarmName').value = farm.name || '';
+                    document.getElementById('editFarmLocation').value = farm.location || '';
+                    document.getElementById('editFarmDescription').value = farm.description || '';
+                    document.getElementById('editFarmLatitude').value = farm.latitude || '';
+                    document.getElementById('editFarmLongitude').value = farm.longitude || '';
+                    document.getElementById('editFarmLandArea').value = farm.land_area || '';
+
+                    openModal('editFarmModal');
+                } else {
+                    showStatus('farmsStatus', 'error', `❌ ${data.message}`);
+                }
+            } catch (error) {
+                showStatus('farmsStatus', 'error', `❌ ${error.message}`);
+            }
+        }
+
+        async function updateFarm() {
+            const farmId = document.getElementById('editFarmId').value;
+            const name = document.getElementById('editFarmName').value.trim();
+            const location = document.getElementById('editFarmLocation').value.trim();
+            const description = document.getElementById('editFarmDescription').value.trim();
+            const latitude = document.getElementById('editFarmLatitude').value;
+            const longitude = document.getElementById('editFarmLongitude').value;
+            const landArea = document.getElementById('editFarmLandArea').value;
+
+            try {
+                showStatus('farmsStatus', 'loading', '⏳ Updating farm...');
+                closeModal('editFarmModal');
+
+                const payload = {};
+                if (name) payload.name = name;
+                if (location) payload.location = location;
+                if (description) payload.description = description;
+                if (latitude) payload.latitude = parseFloat(latitude);
+                if (longitude) payload.longitude = parseFloat(longitude);
+                if (landArea) payload.land_area = parseFloat(landArea);
+
+                const res = await fetch(`${API_BASE}/farmer/farms/${farmId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+                showResponse('farmsResponse', data);
+
+                if (data.status === 'success') {
+                    showStatus('farmsStatus', 'success', '✅ Farm updated successfully!');
+                    loadFarms();
+                } else {
+                    showStatus('farmsStatus', 'error', `❌ ${data.message}`);
+                }
+            } catch (error) {
+                showStatus('farmsStatus', 'error', `❌ ${error.message}`);
+            }
+        }
+
+        function openDeleteFarmModal(farmId, farmName) {
+            document.getElementById('deleteFarmId').value = farmId;
+            document.getElementById('deleteFarmName').textContent = farmName;
+            openModal('deleteFarmModal');
+        }
+
+        async function deleteFarm() {
+            const farmId = document.getElementById('deleteFarmId').value;
+
+            try {
+                showStatus('farmsStatus', 'loading', '⏳ Deleting farm...');
+                closeModal('deleteFarmModal');
+
+                const res = await fetch(`${API_BASE}/farmer/farms/${farmId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                const data = await res.json();
+                showResponse('farmsResponse', data);
+
+                if (data.status === 'success') {
+                    showStatus('farmsStatus', 'success', '✅ Farm deleted successfully!');
+                    loadFarms();
+                } else {
+                    showStatus('farmsStatus', 'error', `❌ ${data.message}`);
+                }
+            } catch (error) {
+                showStatus('farmsStatus', 'error', `❌ ${error.message}`);
+            }
+        }
+
+        // =============== INVOICES ===============
+        async function loadInvoices() {
+            try {
+                showStatus('invoicesStatus', 'loading', '⏳ Loading invoices...');
+
+                const res = await fetch(`${API_BASE}/farmer/invoices`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                const data = await res.json();
+                showResponse('invoicesResponse', data);
+
+                if (data.status === 'success') {
+                    hideStatus('invoicesStatus');
+                    renderInvoices(data.data.invoices || []);
+                } else {
+                    showStatus('invoicesStatus', 'error', `❌ ${data.message}`);
+                }
+            } catch (error) {
+                showStatus('invoicesStatus', 'error', `❌ ${error.message}`);
+            }
+        }
+
+        function renderInvoices(invoices) {
+            if (!invoices || invoices.length === 0) {
+                document.getElementById('invoicesContent').innerHTML = `
+                    <div class="empty-state">
+                        <p>📄 No invoices found</p>
+                        <p style="margin-top: 8px;">Click "Create Invoice" to create your first invoice</p>
+                    </div>
+                `;
+                return;
+            }
+
+            document.getElementById('invoicesContent').innerHTML = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Farm</th>
+                            <th>Target Fund</th>
+                            <th>Yield</th>
+                            <th>Duration</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${invoices.map(inv => `
+                            <tr>
+                                <td>${inv.name}</td>
+                                <td>${inv.farm_name}</td>
+                                <td>Rp ${Number(inv.target_fund).toLocaleString('id-ID')}</td>
+                                <td>${inv.yield_percent}%</td>
+                                <td>${inv.duration_days} days</td>
+                                <td><span class="status-badge ${inv.status}">${inv.status}</span></td>
+                                <td class="action-buttons">
+                                    <button class="btn btn-secondary btn-sm" onclick="viewInvoiceDetail('${inv.id}')">👁️</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        async function openCreateInvoiceModal() {
+            // Populate farms dropdown
+            const select = document.getElementById('invoiceFarmId');
+            select.innerHTML = '<option value="">-- Select a farm --</option>';
+
+            if (farmsCache.length === 0) {
+                await loadFarms();
+            }
+
+            farmsCache.forEach(farm => {
+                select.innerHTML += `<option value="${farm.id}">${farm.name}</option>`;
+            });
+
+            // Reset form
+            document.getElementById('invoiceName').value = '';
+            document.getElementById('invoiceDescription').value = '';
+            document.getElementById('invoiceImage').value = '';
+            document.getElementById('invoiceFileName').textContent = 'No file selected';
+            document.getElementById('invoiceTargetFund').value = '';
+            document.getElementById('invoiceYieldPercent').value = '';
+            document.getElementById('invoiceDurationDays').value = '';
+            document.getElementById('invoiceOfftakerId').value = '';
+            invoiceImageKey = null;
+
+            openModal('createInvoiceModal');
+        }
+
+        function updateInvoiceFileName() {
+            const input = document.getElementById('invoiceImage');
+            const label = document.getElementById('invoiceFileName');
+            const wrapper = input.parentElement.querySelector('.file-input-btn');
+
+            if (input.files.length > 0) {
+                label.textContent = input.files[0].name;
+                wrapper.classList.add('has-file');
+            } else {
+                label.textContent = 'No file selected';
+                wrapper.classList.remove('has-file');
+            }
+        }
+
+        async function uploadInvoiceImage() {
+            const file = document.getElementById('invoiceImage').files[0];
+            if (!file) return null;
+
+            // Get presigned URL
+            const presignRes = await fetch(`${API_BASE}/farmer/invoices/image/presign`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify({
+                    file_name: file.name,
+                    content_type: file.type
+                })
+            });
+
+            const presignData = await presignRes.json();
+
+            if (presignData.status !== 'success') {
+                throw new Error(presignData.message || 'Failed to get presigned URL');
+            }
+
+            // Upload file
+            await fetch(presignData.data.upload_url, {
+                method: 'PUT',
+                body: file
+            });
+
+            return presignData.data.file_key;
+        }
+
+        async function createInvoice() {
+            const farmId = document.getElementById('invoiceFarmId').value;
+            const name = document.getElementById('invoiceName').value.trim();
+            const description = document.getElementById('invoiceDescription').value.trim();
+            const targetFund = document.getElementById('invoiceTargetFund').value;
+            const yieldPercent = document.getElementById('invoiceYieldPercent').value;
+            const durationDays = document.getElementById('invoiceDurationDays').value;
+            const offtakerId = document.getElementById('invoiceOfftakerId').value.trim();
+
+            if (!farmId || !name || !targetFund || !yieldPercent || !durationDays) {
+                alert('Please fill all required fields');
+                return;
+            }
+
+            try {
+                showStatus('invoicesStatus', 'loading', '⏳ Uploading image...');
+                closeModal('createInvoiceModal');
+
+                // Upload image if selected
+                let imageKey = null;
+                if (document.getElementById('invoiceImage').files.length > 0) {
+                    imageKey = await uploadInvoiceImage();
+                }
+
+                showStatus('invoicesStatus', 'loading', '⏳ Creating invoice...');
+
+                const payload = {
+                    farm_id: farmId,
+                    name: name,
+                    target_fund: parseFloat(targetFund),
+                    yield_percent: parseFloat(yieldPercent),
+                    duration_days: parseInt(durationDays)
+                };
+
+                if (description) payload.description = description;
+                if (imageKey) payload.image_key = imageKey;
+                if (offtakerId) payload.offtaker_id = offtakerId;
+
+                const res = await fetch(`${API_BASE}/farmer/invoices`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+                showResponse('invoicesResponse', data);
+
+                if (data.status === 'success') {
+                    showStatus('invoicesStatus', 'success', '✅ Invoice created successfully!');
+                    loadInvoices();
+                } else {
+                    showStatus('invoicesStatus', 'error', `❌ ${data.message}`);
+                }
+            } catch (error) {
+                showStatus('invoicesStatus', 'error', `❌ ${error.message}`);
+            }
+        }
+
+        async function viewInvoiceDetail(invoiceId) {
+            try {
+                openModal('invoiceDetailModal');
+                document.getElementById('invoiceDetailContent').innerHTML = '<div class="empty-state">Loading...</div>';
+
+                const res = await fetch(`${API_BASE}/farmer/invoices/${invoiceId}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                const data = await res.json();
+
+                if (data.status === 'success') {
+                    const inv = data.data.invoice;
+                    document.getElementById('invoiceDetailContent').innerHTML = `
+                        <div class="profile-grid">
+                            <div class="profile-item">
+                                <div class="profile-label">Invoice ID</div>
+                                <div class="profile-value" style="font-size: 0.8rem;">${inv.id}</div>
+                            </div>
+                            <div class="profile-item">
+                                <div class="profile-label">Status</div>
+                                <div class="profile-value"><span class="status-badge ${inv.status}">${inv.status}</span></div>
+                            </div>
+                            <div class="profile-item">
+                                <div class="profile-label">Name</div>
+                                <div class="profile-value">${inv.name}</div>
+                            </div>
+                            <div class="profile-item">
+                                <div class="profile-label">Farm</div>
+                                <div class="profile-value">${inv.farm_name}</div>
+                            </div>
+                            <div class="profile-item">
+                                <div class="profile-label">Target Fund</div>
+                                <div class="profile-value">Rp ${Number(inv.target_fund).toLocaleString('id-ID')}</div>
+                            </div>
+                            <div class="profile-item">
+                                <div class="profile-label">Total Funded</div>
+                                <div class="profile-value">Rp ${Number(inv.total_funded).toLocaleString('id-ID')}</div>
+                            </div>
+                            <div class="profile-item">
+                                <div class="profile-label">Yield Percent</div>
+                                <div class="profile-value">${inv.yield_percent}%</div>
+                            </div>
+                            <div class="profile-item">
+                                <div class="profile-label">Duration</div>
+                                <div class="profile-value">${inv.duration_days} days</div>
+                            </div>
+                            ${inv.token_id ? `
+                            <div class="profile-item">
+                                <div class="profile-label">Token ID</div>
+                                <div class="profile-value">${inv.token_id}</div>
+                            </div>` : ''}
+                            ${inv.rejection_reason ? `
+                            <div class="profile-item" style="grid-column: span 2;">
+                                <div class="profile-label">Rejection Reason</div>
+                                <div class="profile-value" style="color: var(--error);">${inv.rejection_reason}</div>
+                            </div>` : ''}
+                        </div>
+                        ${inv.image_url ? `
+                        <div style="margin-top: 16px;">
+                            <div class="profile-label">Invoice Image</div>
+                            <img src="${inv.image_url}" style="max-width: 100%; border-radius: 8px; margin-top: 8px;">
+                        </div>` : ''}
+                    `;
+                } else {
+                    document.getElementById('invoiceDetailContent').innerHTML = `
+                        <div class="empty-state" style="color: var(--error);">❌ ${data.message}</div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('invoiceDetailContent').innerHTML = `
+                    <div class="empty-state" style="color: var(--error);">❌ ${error.message}</div>
+                `;
+            }
+        }
+    </script>
+</body>
+
+</html>
