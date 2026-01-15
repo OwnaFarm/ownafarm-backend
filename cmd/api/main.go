@@ -40,13 +40,13 @@ func main() {
 	// 3. Setup router
 	router := gin.Default()
 
-	// 4. Setup CORS - Allow all origins (temporary)
+	// 4. Setup CORS - Allow all origins
 	router.Use(cors.New(cors.Config{
 		AllowAllOrigins:  true,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: true,
+		AllowCredentials: false, // Must be false when AllowAllOrigins is true
 	}))
 
 	// 5. Initialize Utils
