@@ -52,6 +52,7 @@ func main() {
 	// 5. Initialize Utils
 	jwtUtil := utils.NewJWTUtil(&cfg.JWT)
 	adminJwtUtil := utils.NewAdminJWTUtil(&cfg.JWT)
+	farmerJwtUtil := utils.NewFarmerJWTUtil(&cfg.JWT)
 
 	// 6. Initialize Storage Service
 	storageService, err := services.NewR2StorageService(&cfg.R2)
@@ -61,6 +62,7 @@ func main() {
 
 	// 7. Initialize Services
 	nonceService := services.NewNonceService(database.Valkey, &cfg.Auth)
+	farmerNonceService := services.NewFarmerNonceService(database.Valkey, &cfg.Auth)
 	authService := services.NewAuthService(&cfg.Auth)
 	rateLimitService := services.NewRateLimitService(database.Valkey)
 
@@ -99,6 +101,7 @@ func main() {
 	userHandler := handlers.NewUserHandler(userRepo)
 	authHandler := handlers.NewAuthHandler(userRepo, nonceService, authService, jwtUtil)
 	farmerHandler := handlers.NewFarmerHandler(farmerService)
+	farmerAuthHandler := handlers.NewFarmerAuthHandler(farmerRepo, farmerNonceService, authService, farmerJwtUtil)
 	adminAuthHandler := handlers.NewAdminAuthHandler(adminAuthService)
 	farmHandler := handlers.NewFarmHandler(farmService)
 	invoiceHandler := handlers.NewInvoiceHandler(invoiceService)
@@ -108,7 +111,7 @@ func main() {
 	// 12. Initialize Middleware
 	authMiddleware := middleware.NewAuthMiddleware(jwtUtil)
 	adminAuthMiddleware := middleware.NewAdminAuthMiddleware(adminJwtUtil)
-	farmerAuthMiddleware := middleware.NewFarmerAuthMiddleware(authMiddleware, farmerRepo)
+	farmerAuthMiddleware := middleware.NewFarmerAuthMiddleware(farmerJwtUtil)
 
 	// 13. Routes
 	routes.SetupRoutes(
@@ -116,6 +119,7 @@ func main() {
 		userHandler,
 		authHandler,
 		farmerHandler,
+		farmerAuthHandler,
 		adminAuthHandler,
 		farmHandler,
 		invoiceHandler,

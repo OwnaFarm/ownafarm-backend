@@ -41,6 +41,7 @@ type FarmerServiceInterface interface {
 	GetDetailForAdmin(ctx context.Context, farmerID string) (*response.FarmerDetailResponse, error)
 	ApproveFarmer(ctx context.Context, farmerID, adminID, ipAddress, userAgent string) (*response.FarmerStatusUpdateResponse, error)
 	RejectFarmer(ctx context.Context, farmerID, adminID string, reason *string, ipAddress, userAgent string) (*response.FarmerStatusUpdateResponse, error)
+	GetByID(ctx context.Context, farmerID string) (*models.Farmer, error)
 }
 
 // FarmerService implements FarmerServiceInterface
@@ -467,4 +468,13 @@ func (s *FarmerService) createAuditLog(adminID, action, entityType, entityID, ol
 	if err := s.auditLogRepo.Create(auditLog); err != nil {
 		fmt.Printf("failed to create audit log: %v\n", err)
 	}
+}
+
+// GetByID retrieves a farmer by ID
+func (s *FarmerService) GetByID(ctx context.Context, farmerID string) (*models.Farmer, error) {
+	farmer, err := s.farmerRepo.GetByID(farmerID)
+	if err != nil {
+		return nil, ErrFarmerNotFound
+	}
+	return farmer, nil
 }

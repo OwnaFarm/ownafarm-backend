@@ -21,6 +21,7 @@ type FarmerRepository interface {
 	GetByID(id string) (*models.Farmer, error)
 	GetByUserID(userID string) (*models.Farmer, error)
 	GetByEmail(email string) (*models.Farmer, error)
+	GetByWalletAddress(walletAddress string) (*models.Farmer, error)
 	ExistsByEmailOrPhone(email, phone string) (bool, error)
 	ExistsByWalletAddress(walletAddress string) (bool, error)
 	CreateDocuments(documents []models.FarmerDocument) error
@@ -174,6 +175,15 @@ func (r *farmerRepository) Update(farmer *models.Farmer) error {
 func (r *farmerRepository) GetByUserID(userID string) (*models.Farmer, error) {
 	var farmer models.Farmer
 	if err := r.db.First(&farmer, "user_id = ?", userID).Error; err != nil {
+		return nil, err
+	}
+	return &farmer, nil
+}
+
+// GetByWalletAddress retrieves a farmer by wallet address
+func (r *farmerRepository) GetByWalletAddress(walletAddress string) (*models.Farmer, error) {
+	var farmer models.Farmer
+	if err := r.db.First(&farmer, "wallet_address = ?", walletAddress).Error; err != nil {
 		return nil, err
 	}
 	return &farmer, nil

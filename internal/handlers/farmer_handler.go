@@ -315,3 +315,38 @@ func (h *FarmerHandler) RejectFarmer(c *gin.Context) {
 		"data":   resp,
 	})
 }
+
+// GetMe handles getting current logged-in farmer data
+// GET /farmer/me
+func (h *FarmerHandler) GetMe(c *gin.Context) {
+	// Get farmer ID from context (set by FarmerAuthMiddleware)
+	farmerID, exists := middleware.GetFarmerID(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"status":  "error",
+			"message": "Farmer not authenticated",
+		})
+		return
+	}
+
+	farmer, err := h.farmerService.GetByID(c.Request.Context(), farmerID)
+	if err != nil {
+		if errors.Is(err, services.ErrFarmerNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{
+				"status":  "error",
+				"message": "Farmer not found",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status":  "error",
+			"message": "Failed to get farmer data",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status": "success",
+		"data":   farmer,
+	})
+}
