@@ -148,12 +148,21 @@ func (s *InvoiceService) List(ctx context.Context, farmerID string, req *request
 	// Map to response
 	invoiceItems := make([]response.InvoiceListItem, 0, len(invoices))
 	for _, inv := range invoices {
+		// Generate presigned URL for image if exists
+		var imageURL *string
+		if inv.ImageURL != nil && *inv.ImageURL != "" {
+			presignedURL, err := s.storageService.GetPresignedDownloadURL(ctx, *inv.ImageURL, 1*time.Hour)
+			if err == nil {
+				imageURL = &presignedURL
+			}
+		}
+
 		invoiceItems = append(invoiceItems, response.InvoiceListItem{
 			ID:            inv.ID,
 			FarmID:        inv.FarmID,
 			FarmName:      inv.Farm.Name,
 			Name:          inv.Name,
-			ImageURL:      inv.ImageURL,
+			ImageURL:      imageURL,
 			TargetFund:    inv.TargetFund,
 			YieldPercent:  inv.YieldPercent,
 			DurationDays:  inv.DurationDays,
@@ -241,12 +250,21 @@ func (s *InvoiceService) ListAvailableInvoices(ctx context.Context, req *request
 			fundingProgress = inv.TotalFunded.Div(inv.TargetFund).Mul(decimal.NewFromInt(100)).InexactFloat64()
 		}
 
+		// Generate presigned URL for image if exists
+		var imageURL *string
+		if inv.ImageURL != nil && *inv.ImageURL != "" {
+			presignedURL, err := s.storageService.GetPresignedDownloadURL(ctx, *inv.ImageURL, 1*time.Hour)
+			if err == nil {
+				imageURL = &presignedURL
+			}
+		}
+
 		invoiceItems = append(invoiceItems, response.MarketplaceInvoiceItem{
 			ID:              inv.ID,
 			TokenID:         inv.TokenID,
 			Name:            inv.Name,
 			Description:     inv.Description,
-			ImageURL:        inv.ImageURL,
+			ImageURL:        imageURL,
 			TargetFund:      inv.TargetFund,
 			TotalFunded:     inv.TotalFunded,
 			FundingProgress: fundingProgress,
@@ -318,6 +336,15 @@ func (s *InvoiceService) ListForAdmin(ctx context.Context, req *request.ListInvo
 	// Map to response
 	invoiceItems := make([]response.InvoiceListItemAdmin, 0, len(invoices))
 	for _, inv := range invoices {
+		// Generate presigned URL for image if exists
+		var imageURL *string
+		if inv.ImageURL != nil && *inv.ImageURL != "" {
+			presignedURL, err := s.storageService.GetPresignedDownloadURL(ctx, *inv.ImageURL, 1*time.Hour)
+			if err == nil {
+				imageURL = &presignedURL
+			}
+		}
+
 		invoiceItems = append(invoiceItems, response.InvoiceListItemAdmin{
 			ID:            inv.ID,
 			FarmID:        inv.FarmID,
@@ -325,7 +352,7 @@ func (s *InvoiceService) ListForAdmin(ctx context.Context, req *request.ListInvo
 			FarmerID:      inv.Farm.FarmerID,
 			FarmerName:    inv.Farm.Farmer.FullName,
 			Name:          inv.Name,
-			ImageURL:      inv.ImageURL,
+			ImageURL:      imageURL,
 			TargetFund:    inv.TargetFund,
 			YieldPercent:  inv.YieldPercent,
 			DurationDays:  inv.DurationDays,
