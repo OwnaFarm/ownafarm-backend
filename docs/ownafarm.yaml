@@ -3648,6 +3648,17 @@ components:
           maxLength: 100
           description: ID offtaker/pembeli (optional)
           example: indofood-001
+        token_id:
+          type: integer
+          format: int64
+          nullable: true
+          description: Token ID dari smart contract event InvoiceSubmitted
+          example: 12345
+        tx_hash:
+          type: string
+          nullable: true
+          description: Transaction hash dari transaksi submitInvoice
+          example: '0xabc123def456789012345678901234567890123456789012345678901234abcd'
 
     Invoice:
       type: object

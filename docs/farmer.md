@@ -682,7 +682,9 @@ Membuat invoice/pengajuan proyek pendanaan baru.
   "target_fund": 50000000,
   "yield_percent": 18.5,
   "duration_days": 90,
-  "offtaker_id": "indofood-001"
+  "offtaker_id": "indofood-001",
+  "token_id": 12345,
+  "tx_hash": "0xabc123def456789012345678901234567890123456789012345678901234abcd"
 }
 ```
 
@@ -698,6 +700,8 @@ Membuat invoice/pengajuan proyek pendanaan baru.
 | `yield_percent` | float | ✅ | > 0, max 100 | Persentase return (misal: 18.5%) |
 | `duration_days` | int | ✅ | min 1 | Durasi sampai panen/maturity dalam hari |
 | `offtaker_id` | string | ❌ | max 100 char | ID offtaker/pembeli (optional) |
+| `token_id` | int | ❌ | - | Token ID dari smart contract event `InvoiceSubmitted` |
+| `tx_hash` | string | ❌ | - | Transaction hash dari transaksi `submitInvoice` |
 
 **Response (201 Created):**
 
