@@ -105,6 +105,7 @@ type InvoiceStatusUpdateResponse struct {
 // MarketplaceInvoiceItem represents an invoice in the marketplace list response
 type MarketplaceInvoiceItem struct {
 	ID              string          `json:"id"`
+	TokenID         *int64          `json:"token_id,omitempty"`
 	Name            string          `json:"name"`
 	Description     *string         `json:"description,omitempty"`
 	ImageURL        *string         `json:"image_url,omitempty"`

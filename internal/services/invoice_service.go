@@ -243,6 +243,7 @@ func (s *InvoiceService) ListAvailableInvoices(ctx context.Context, req *request
 
 		invoiceItems = append(invoiceItems, response.MarketplaceInvoiceItem{
 			ID:              inv.ID,
+			TokenID:         inv.TokenID,
 			Name:            inv.Name,
 			Description:     inv.Description,
 			ImageURL:        inv.ImageURL,
