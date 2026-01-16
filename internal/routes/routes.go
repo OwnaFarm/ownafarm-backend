@@ -13,6 +13,7 @@ func SetupRoutes(
 	userHandler *handlers.UserHandler,
 	authHandler *handlers.AuthHandler,
 	farmerHandler *handlers.FarmerHandler,
+	farmerAuthHandler *handlers.FarmerAuthHandler,
 	adminAuthHandler *handlers.AdminAuthHandler,
 	farmHandler *handlers.FarmHandler,
 	invoiceHandler *handlers.InvoiceHandler,
@@ -77,6 +78,7 @@ func SetupRoutes(
 	{
 		// Farmer management
 		admin.GET("/farmers", farmerHandler.GetListForAdmin)
+		admin.GET("/farmers/:id", farmerHandler.GetDetailForAdmin)
 		admin.PATCH("/farmers/:id/approve", farmerHandler.ApproveFarmer)
 		admin.PATCH("/farmers/:id/reject", farmerHandler.RejectFarmer)
 
@@ -87,10 +89,20 @@ func SetupRoutes(
 		admin.PATCH("/invoices/:id/reject", invoiceHandler.RejectInvoice)
 	}
 
+	// Farmer auth routes (public)
+	farmerAuth := router.Group("/farmer/auth")
+	{
+		farmerAuth.GET("/nonce", farmerAuthHandler.GetNonce)
+		farmerAuth.POST("/login", farmerAuthHandler.Login)
+	}
+
 	// Farmer routes (requires farmer auth - approved farmers only)
 	farmer := router.Group("/farmer")
 	farmer.Use(farmerAuthMiddleware.FarmerAuthRequired())
 	{
+		// Get current farmer data
+		farmer.GET("/me", farmerHandler.GetMe)
+
 		// Farm management
 		farmer.POST("/farms", farmHandler.Create)
 		farmer.GET("/farms", farmHandler.List)

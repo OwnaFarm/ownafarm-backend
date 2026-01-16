@@ -2,9 +2,139 @@
 
 API untuk registrasi petani (farmer) dan manajemen kebun (farm) serta invoice pendanaan.
 
-**Base URL:** `/farmers` (public) dan `/farmer` (authenticated)
+**Base URL:** `/farmers` (public), `/farmer/auth` (public auth), dan `/farmer` (authenticated)
 
-**Authentication:** Endpoint di `/farmer/*` memerlukan JWT token dari user yang memiliki farmer profile dengan status `approved`.
+**Authentication:** Endpoint di `/farmer/*` (kecuali `/farmer/auth/*`) memerlukan JWT token dari farmer dengan status `approved`.
+
+---
+
+## Farmer Authentication
+
+Farmer memiliki sistem autentikasi terpisah dari investor menggunakan wallet signature.
+
+### Get Farmer Nonce
+
+Mendapatkan nonce untuk ditandatangani oleh wallet farmer.
+
+| Method | Endpoint | Auth |
+|--------|----------|------|
+| `GET` | `/farmer/auth/nonce` | ❌ |
+
+**Query Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `wallet_address` | string | ✅ | Wallet address farmer (0x...) |
+
+**Response (200):**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "nonce": "a1b2c3d4e5f67890...",
+    "message": "Sign this message to login to OwnaFarm as Farmer.\n\nNonce: a1b2c3d4e5f67890..."
+  }
+}
+```
+
+**Errors:**
+- `400` - `wallet_address query parameter is required`
+- `400` - `Invalid wallet address format`
+
+---
+
+### Farmer Login
+
+Login farmer dengan wallet signature. Hanya farmer dengan status `approved` yang dapat login.
+
+| Method | Endpoint | Auth |
+|--------|----------|------|
+| `POST` | `/farmer/auth/login` | ❌ |
+
+**Request Body:**
+
+```json
+{
+  "wallet_address": "0x742d35Cc6634C0532925a3b844BC9e7595f7CCCC",
+  "signature": "0x1234567890abcdef...",
+  "nonce": "a1b2c3d4e5f67890..."
+}
+```
+
+**Response (200):**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "farmer": {
+      "id": "f1a2b3c4-d5e6-7890-abcd-ef1234567890",
+      "wallet_address": "0x742d35cc6634c0532925a3b844bc9e7595f7cccc",
+      "full_name": "Budi Santoso",
+      "email": "budi.santoso@example.com"
+    }
+  }
+}
+```
+
+**Errors:**
+- `400` - `Invalid request body`
+- `400` - `Invalid wallet address format`
+- `401` - `Invalid or expired nonce`
+- `401` - `Invalid signature`
+- `401` - `Farmer account not found. Please register first.`
+- `403` - `Farmer account is not approved` (includes `current_status` in response)
+
+---
+
+### Get Current Farmer
+
+Mendapatkan data farmer yang sedang login.
+
+| Method | Endpoint | Auth |
+|--------|----------|------|
+| `GET` | `/farmer/me` | ✅ Farmer |
+
+**Response (200):**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "id": "f1a2b3c4-d5e6-7890-abcd-ef1234567890",
+    "status": "approved",
+    "wallet_address": "0x742d35cc6634c0532925a3b844bc9e7595f7cccc",
+    "full_name": "Budi Santoso",
+    "email": "budi.santoso@example.com",
+    "phone_number": "+628123456789",
+    "id_number": "3201234567890123",
+    "date_of_birth": "1985-06-15T00:00:00Z",
+    "address": "Jl. Merdeka No. 123",
+    "province": "Jawa Barat",
+    "city": "Bandung",
+    "district": "Coblong",
+    "postal_code": "40132",
+    "business_name": "Tani Makmur",
+    "business_type": "cv",
+    "npwp": "12.345.678.9-123.000",
+    "bank_name": "Bank BCA",
+    "bank_account_number": "1234567890",
+    "bank_account_name": "Budi Santoso",
+    "years_of_experience": 10,
+    "crops_expertise": ["padi", "jagung", "cabai"],
+    "reviewed_by": "admin-uuid",
+    "reviewed_at": "2024-01-16T09:00:00Z",
+    "created_at": "2024-01-15T10:30:00Z",
+    "updated_at": "2024-01-16T09:00:00Z"
+  }
+}
+```
+
+**Errors:**
+- `401` - `Farmer not authenticated`
+- `404` - `Farmer not found`
 
 ---
 
@@ -150,7 +280,8 @@ Mendaftarkan petani baru dengan data lengkap dan dokumen yang sudah diupload.
     "province": "Jawa Barat",
     "city": "Bandung",
     "district": "Coblong",
-    "postal_code": "40132"
+    "postal_code": "40132",
+    "wallet_address": "0x742d35Cc6634C0532925a3b844BC9e7595f7CCCC"
   },
   "business_info": {
     "business_name": "Tani Makmur",
@@ -197,6 +328,7 @@ Mendaftarkan petani baru dengan data lengkap dan dokumen yang sudah diupload.
 | `city` | string | ✅ | max 100 char | Kota/Kabupaten |
 | `district` | string | ✅ | max 100 char | Kecamatan |
 | `postal_code` | string | ✅ | max 10 char | Kode pos |
+| `wallet_address` | string | ✅ | exactly 42 char, starts with 0x | Ethereum wallet address untuk login via signature |
 
 **Business Info (Required)**
 
@@ -550,7 +682,9 @@ Membuat invoice/pengajuan proyek pendanaan baru.
   "target_fund": 50000000,
   "yield_percent": 18.5,
   "duration_days": 90,
-  "offtaker_id": "indofood-001"
+  "offtaker_id": "indofood-001",
+  "token_id": 12345,
+  "tx_hash": "0xabc123def456789012345678901234567890123456789012345678901234abcd"
 }
 ```
 
@@ -566,6 +700,8 @@ Membuat invoice/pengajuan proyek pendanaan baru.
 | `yield_percent` | float | ✅ | > 0, max 100 | Persentase return (misal: 18.5%) |
 | `duration_days` | int | ✅ | min 1 | Durasi sampai panen/maturity dalam hari |
 | `offtaker_id` | string | ❌ | max 100 char | ID offtaker/pembeli (optional) |
+| `token_id` | int | ❌ | - | Token ID dari smart contract event `InvoiceSubmitted` |
+| `tx_hash` | string | ❌ | - | Transaction hash dari transaksi `submitInvoice` |
 
 **Response (201 Created):**
 
@@ -746,6 +882,7 @@ Mendapatkan detail invoice berdasarkan ID.
 | `404` | `Farm not found` | Farm tidak ditemukan |
 | `404` | `Invoice not found` | Invoice tidak ditemukan |
 | `409` | `Farmer with this email or phone number already exists` | Email/phone sudah terdaftar |
+| `409` | `Farmer with this wallet address already exists` | Wallet address sudah terdaftar |
 | `500` | `Internal server error` | Error server |
 
 ---

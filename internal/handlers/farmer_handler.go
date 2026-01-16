@@ -167,6 +167,40 @@ func (h *FarmerHandler) GetListForAdmin(c *gin.Context) {
 	})
 }
 
+// GetDetailForAdmin handles getting farmer detail for admin
+// GET /admin/farmers/:id
+func (h *FarmerHandler) GetDetailForAdmin(c *gin.Context) {
+	farmerID := c.Param("id")
+	if farmerID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "error",
+			"message": "Farmer ID is required",
+		})
+		return
+	}
+
+	resp, err := h.farmerService.GetDetailForAdmin(c.Request.Context(), farmerID)
+	if err != nil {
+		if errors.Is(err, services.ErrFarmerNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{
+				"status":  "error",
+				"message": "Farmer not found",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status":  "error",
+			"message": "Failed to get farmer detail",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status": "success",
+		"data":   resp,
+	})
+}
+
 // ApproveFarmer handles approving a farmer registration
 // PATCH /admin/farmers/:id/approve
 func (h *FarmerHandler) ApproveFarmer(c *gin.Context) {
@@ -279,5 +313,40 @@ func (h *FarmerHandler) RejectFarmer(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"status": "success",
 		"data":   resp,
+	})
+}
+
+// GetMe handles getting current logged-in farmer data
+// GET /farmer/me
+func (h *FarmerHandler) GetMe(c *gin.Context) {
+	// Get farmer ID from context (set by FarmerAuthMiddleware)
+	farmerID, exists := middleware.GetFarmerID(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"status":  "error",
+			"message": "Farmer not authenticated",
+		})
+		return
+	}
+
+	farmer, err := h.farmerService.GetByID(c.Request.Context(), farmerID)
+	if err != nil {
+		if errors.Is(err, services.ErrFarmerNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{
+				"status":  "error",
+				"message": "Farmer not found",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status":  "error",
+			"message": "Failed to get farmer data",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status": "success",
+		"data":   farmer,
 	})
 }

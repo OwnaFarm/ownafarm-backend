@@ -85,6 +85,7 @@ func (s *InvoiceService) Create(ctx context.Context, farmerID string, req *reque
 		OfftakerID:   req.OfftakerID,
 		Status:       models.InvoiceStatusPending,
 		TotalFunded:  decimal.Zero,
+		TokenID:      req.TokenID,
 	}
 
 	// Set image URL if provided

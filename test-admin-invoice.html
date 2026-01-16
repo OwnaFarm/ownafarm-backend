@@ -1,0 +1,1487 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OwnAFarm - Admin Invoice Management</title>
+    <style>
+        :root {
+            --primary: #10b981;
+            --primary-dark: #059669;
+            --secondary: #1e293b;
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --success: #22c55e;
+            --error: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --border: #334155;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #1a2332 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary) 0%, #34d399 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border);
+            margin-bottom: 24px;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .step-badge {
+            background: var(--primary);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px -10px rgba(16, 185, 129, 0.5);
+        }
+
+        .btn-secondary {
+            background: var(--secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #2d3b50;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            color: white;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px -10px rgba(34, 197, 94, 0.5);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px -10px rgba(239, 68, 68, 0.5);
+        }
+
+        .btn-block {
+            width: 100%;
+        }
+
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 0.85rem;
+        }
+
+        .wallet-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 20px;
+            font-size: 0.85rem;
+        }
+
+        .wallet-indicator .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+        }
+
+        .wallet-indicator.disconnected {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .wallet-indicator.disconnected .dot {
+            background: var(--error);
+        }
+
+        .header-actions {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .status {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .status.show {
+            display: block;
+        }
+
+        .status.success {
+            background: rgba(34, 197, 94, 0.15);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: var(--success);
+        }
+
+        .status.error {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: var(--error);
+        }
+
+        .status.loading {
+            background: rgba(245, 158, 11, 0.15);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            color: var(--warning);
+        }
+
+        .status.warning {
+            background: rgba(245, 158, 11, 0.15);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            color: var(--warning);
+        }
+
+        .api-info {
+            background: rgba(71, 85, 105, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 16px;
+            font-size: 0.85rem;
+        }
+
+        .api-method {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.75rem;
+            margin-right: 8px;
+        }
+
+        .api-method.get {
+            background: #3b82f6;
+        }
+
+        .api-method.post {
+            background: #22c55e;
+        }
+
+        .api-method.patch {
+            background: #f59e0b;
+        }
+
+        .api-endpoint {
+            font-family: 'SF Mono', 'Consolas', monospace;
+            color: var(--text-secondary);
+        }
+
+        .response-box {
+            background: #0d1117;
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 16px;
+            font-family: 'SF Mono', 'Consolas', monospace;
+            font-size: 0.8rem;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            display: none;
+        }
+
+        .response-box.show {
+            display: block;
+        }
+
+        /* Table Styles */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .data-table th {
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .data-table tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-badge.pending {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+
+        .status-badge.approved {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+
+        .status-badge.rejected {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin-top: 20px;
+        }
+
+        .pagination-info {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin: 0 16px;
+        }
+
+        /* Filter Section */
+        .filter-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+
+        .filter-group {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #0d1117;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 500px;
+            width: 90%;
+            border: 1px solid var(--border);
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal.modal-lg {
+            max-width: 800px;
+        }
+
+        .modal-overlay.show .modal {
+            transform: scale(1);
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .modal-body {
+            margin-bottom: 24px;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #0d1117;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            resize: vertical;
+            min-height: 100px;
+            transition: border-color 0.2s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        label {
+            display: block;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        /* Retry Banner */
+        .retry-banner {
+            background: rgba(245, 158, 11, 0.15);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+            display: none;
+        }
+
+        .retry-banner.show {
+            display: block;
+        }
+
+        .retry-banner-title {
+            color: var(--warning);
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .retry-item {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .retry-info {
+            font-size: 0.85rem;
+        }
+
+        /* Detail Grid */
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        .detail-item {
+            margin-bottom: 12px;
+        }
+
+        .detail-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .detail-value {
+            font-size: 0.95rem;
+            color: var(--text-primary);
+        }
+
+        .invoice-image {
+            width: 100%;
+            max-height: 200px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+
+        footer {
+            margin-top: 40px;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        footer a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .data-table {
+                display: block;
+                overflow-x: auto;
+            }
+
+            .detail-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">🌾 OwnAFarm Admin</div>
+            <p class="subtitle">Invoice Management Dashboard</p>
+            <div class="header-actions">
+                <div class="wallet-indicator disconnected" id="walletIndicator">
+                    <span class="dot"></span>
+                    <span id="walletStatus">Not Connected</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Retry Banner -->
+        <div class="retry-banner" id="retryBanner">
+            <div class="retry-banner-title">
+                ⚠️ Pending Backend Updates
+            </div>
+            <p style="color: var(--text-secondary); font-size: 0.85rem;">
+                Some blockchain transactions succeeded but backend updates failed. Click retry to sync.
+            </p>
+            <div id="retryItems"></div>
+        </div>
+
+        <!-- Step 1: Connect Wallet & Login -->
+        <div class="card" id="loginCard">
+            <div class="card-title">
+                <span class="step-badge">Step 1</span>
+                Admin Login (Wallet Signature)
+            </div>
+            <div class="api-info">
+                <span class="api-method get">GET</span>
+                <span class="api-endpoint">/admin/auth/nonce</span>
+                <span style="margin: 0 8px;">→</span>
+                <span class="api-method post">POST</span>
+                <span class="api-endpoint">/admin/auth/login</span>
+            </div>
+            <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                Connect your wallet and sign a message to login as admin. Make sure your wallet address is registered as
+                an admin.
+            </p>
+
+            <button class="btn btn-primary btn-block" id="connectBtn" onclick="connectAndLogin()">
+                🔐 Connect Wallet & Login
+            </button>
+            <div class="status" id="loginStatus"></div>
+            <div class="response-box" id="loginResponse"></div>
+        </div>
+
+        <!-- Step 2: Invoice Management -->
+        <div class="card" id="invoicesCard" style="display: none;">
+            <div class="card-title">
+                <span class="step-badge">Step 2</span>
+                Invoice Management
+            </div>
+            <div class="api-info">
+                <span class="api-method get">GET</span>
+                <span class="api-endpoint">/admin/invoices</span>
+                <span style="margin: 0 8px;">|</span>
+                <span class="api-method patch">PATCH</span>
+                <span class="api-endpoint">/admin/invoices/:id/approve</span>
+                <span style="margin: 0 8px;">|</span>
+                <span class="api-method patch">PATCH</span>
+                <span class="api-endpoint">/admin/invoices/:id/reject</span>
+            </div>
+
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label>Status Filter</label>
+                    <select id="statusFilter" onchange="loadInvoices()">
+                        <option value="pending">Pending</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                        <option value="">All</option>
+                    </select>
+                </div>
+                <div class="filter-group" style="display: flex; align-items: flex-end;">
+                    <button class="btn btn-secondary btn-block" onclick="loadInvoices()">
+                        🔄 Refresh
+                    </button>
+                </div>
+            </div>
+
+            <div id="invoicesTableContainer">
+                <div class="empty-state">
+                    <p>Click "Refresh" to load invoices</p>
+                </div>
+            </div>
+
+            <div class="status" id="invoicesStatus"></div>
+            <div class="response-box" id="invoicesResponse"></div>
+        </div>
+
+        <!-- Action Log -->
+        <div class="card" id="actionLogCard" style="display: none;">
+            <div class="card-title">
+                📋 Action Log
+            </div>
+            <div id="actionLog" style="max-height: 200px; overflow-y: auto;">
+                <p style="color: var(--text-secondary);">Actions will appear here...</p>
+            </div>
+        </div>
+
+        <footer>
+            <p>API Base URL: <a href="https://ownafarm-backend-production.up.railway.app"
+                    target="_blank">https://ownafarm-backend-production.up.railway.app</a></p>
+            <p style="margin-top: 8px;">Smart Contract: <a
+                    href="https://sepolia.basescan.org/address/0xC51601dde25775bA2740EE14D633FA54e12Ef6C7"
+                    target="_blank">0xC51601dde25775bA2740EE14D633FA54e12Ef6C7</a></p>
+            <p style="margin-top: 8px;">Made for OwnAFarm Backend Testing</p>
+        </footer>
+    </div>
+
+    <!-- Invoice Detail Modal -->
+    <div class="modal-overlay" id="detailModal">
+        <div class="modal modal-lg">
+            <div class="modal-title">📄 Invoice Details</div>
+            <div class="modal-body" id="detailModalBody">
+                <div style="text-align: center; padding: 40px;">
+                    <p style="color: var(--text-secondary);">Loading...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeDetailModal()">Close</button>
+                <button class="btn btn-success" id="detailApproveBtn" style="display: none;"
+                    onclick="approveFromDetail()">✅ Approve</button>
+                <button class="btn btn-danger" id="detailRejectBtn" style="display: none;" onclick="openRejectModal()">❌
+                    Reject</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reject Modal -->
+    <div class="modal-overlay" id="rejectModal">
+        <div class="modal">
+            <div class="modal-title">❌ Reject Invoice</div>
+            <div class="modal-body">
+                <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                    Please provide a reason for rejection (optional):
+                </p>
+                <label>Rejection Reason</label>
+                <textarea id="rejectReason" placeholder="e.g., Target pendanaan tidak realistis..."></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeRejectModal()">Cancel</button>
+                <button class="btn btn-danger" onclick="confirmReject()">Reject Invoice</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Approve Confirmation Modal -->
+    <div class="modal-overlay" id="approveModal">
+        <div class="modal">
+            <div class="modal-title">✅ Approve Invoice</div>
+            <div class="modal-body">
+                <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                    This will call the smart contract to approve the invoice, then update the backend.
+                </p>
+                <div id="approveInvoiceDetails"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeApproveModal()">Cancel</button>
+                <button class="btn btn-success" id="confirmApproveBtn" onclick="confirmApprove()">🔗 Approve on
+                    Blockchain</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Processing Modal -->
+    <div class="modal-overlay" id="processingModal">
+        <div class="modal">
+            <div class="modal-title" id="processingTitle">⏳ Processing...</div>
+            <div class="modal-body">
+                <div id="processingSteps" style="font-size: 0.9rem;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://ownafarm-backend-production.up.railway.app';
+        const CONTRACT_ADDRESS = '0xC51601dde25775bA2740EE14D633FA54e12Ef6C7';
+
+        // Minimal ABI for approveInvoice and rejectInvoice
+        const CONTRACT_ABI = [
+            {
+                "inputs": [{ "internalType": "uint256", "name": "tokenId", "type": "uint256" }],
+                "name": "approveInvoice",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [{ "internalType": "uint256", "name": "tokenId", "type": "uint256" }],
+                "name": "rejectInvoice",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+                "name": "invoices",
+                "outputs": [
+                    { "internalType": "address", "name": "farmer", "type": "address" },
+                    { "internalType": "uint128", "name": "targetFund", "type": "uint128" },
+                    { "internalType": "uint128", "name": "fundedAmount", "type": "uint128" },
+                    { "internalType": "uint16", "name": "yieldBps", "type": "uint16" },
+                    { "internalType": "uint32", "name": "duration", "type": "uint32" },
+                    { "internalType": "uint32", "name": "createdAt", "type": "uint32" },
+                    { "internalType": "enum OwnaFarmNFT.InvoiceStatus", "name": "status", "type": "uint8" },
+                    { "internalType": "bytes32", "name": "offtakerId", "type": "bytes32" }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            }
+        ];
+
+        let authToken = null;
+        let signer = null;
+        let contract = null;
+        let currentInvoice = null;
+        let currentPage = 1;
+        const RETRY_STORAGE_KEY = 'ownafarm_pending_retries';
+
+        // Helper functions
+        function showStatus(elementId, type, message) {
+            const el = document.getElementById(elementId);
+            el.className = `status show ${type}`;
+            el.innerHTML = message;
+        }
+
+        function hideStatus(elementId) {
+            document.getElementById(elementId).className = 'status';
+        }
+
+        function showResponse(elementId, data) {
+            const el = document.getElementById(elementId);
+            el.className = 'response-box show';
+            el.textContent = JSON.stringify(data, null, 2);
+        }
+
+        function formatAddress(address) {
+            if (!address) return '-';
+            return `${address.slice(0, 6)}...${address.slice(-4)}`;
+        }
+
+        function formatAmount(amount) {
+            if (!amount) return '0';
+            return new Intl.NumberFormat('id-ID').format(amount);
+        }
+
+        function addLog(message, type = 'info') {
+            const log = document.getElementById('actionLog');
+            const time = new Date().toLocaleTimeString();
+            const color = type === 'success' ? 'var(--success)' : type === 'error' ? 'var(--error)' : 'var(--text-secondary)';
+            log.innerHTML = `<div style="margin-bottom: 8px; color: ${color};">[${time}] ${message}</div>` + log.innerHTML;
+        }
+
+        // Retry mechanism
+        function getPendingRetries() {
+            const data = localStorage.getItem(RETRY_STORAGE_KEY);
+            return data ? JSON.parse(data) : [];
+        }
+
+        function savePendingRetry(invoiceId, action, tokenId, txHash, invoiceName) {
+            const retries = getPendingRetries();
+            retries.push({
+                invoiceId,
+                action,
+                tokenId,
+                txHash,
+                invoiceName,
+                timestamp: Date.now()
+            });
+            localStorage.setItem(RETRY_STORAGE_KEY, JSON.stringify(retries));
+            updateRetryBanner();
+        }
+
+        function removePendingRetry(invoiceId) {
+            const retries = getPendingRetries().filter(r => r.invoiceId !== invoiceId);
+            localStorage.setItem(RETRY_STORAGE_KEY, JSON.stringify(retries));
+            updateRetryBanner();
+        }
+
+        function updateRetryBanner() {
+            const retries = getPendingRetries();
+            const banner = document.getElementById('retryBanner');
+            const container = document.getElementById('retryItems');
+
+            if (retries.length === 0) {
+                banner.classList.remove('show');
+                return;
+            }
+
+            banner.classList.add('show');
+            container.innerHTML = retries.map(r => `
+                <div class="retry-item">
+                    <div class="retry-info">
+                        <strong>${r.invoiceName || r.invoiceId}</strong><br>
+                        <span style="color: var(--text-secondary);">Action: ${r.action} | Token ID: ${r.tokenId}</span>
+                    </div>
+                    <button class="btn btn-sm btn-primary" onclick="retryBackendCall('${r.invoiceId}')">
+                        🔄 Retry
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        async function retryBackendCall(invoiceId) {
+            const retries = getPendingRetries();
+            const retry = retries.find(r => r.invoiceId === invoiceId);
+            if (!retry) return;
+
+            try {
+                showProcessingModal('Retrying backend update...');
+                updateProcessingStep('Calling backend API...', 'loading');
+
+                if (retry.action === 'approve') {
+                    await callBackendApprove(retry.invoiceId, retry.tokenId, retry.txHash);
+                } else {
+                    await callBackendReject(retry.invoiceId, '');
+                }
+
+                removePendingRetry(invoiceId);
+                updateProcessingStep('Backend updated successfully!', 'success');
+                addLog(`Retry successful for invoice ${retry.invoiceName}`, 'success');
+
+                setTimeout(() => {
+                    closeProcessingModal();
+                    loadInvoices();
+                }, 1500);
+
+            } catch (error) {
+                updateProcessingStep(`Retry failed: ${error.message}`, 'error');
+                addLog(`Retry failed: ${error.message}`, 'error');
+                setTimeout(closeProcessingModal, 2000);
+            }
+        }
+
+        // Wallet connection and login
+        async function connectAndLogin() {
+            if (typeof window.ethereum === 'undefined') {
+                showStatus('loginStatus', 'error', '❌ MetaMask not detected. Please install MetaMask.');
+                return;
+            }
+
+            const btn = document.getElementById('connectBtn');
+            btn.disabled = true;
+
+            try {
+                showStatus('loginStatus', 'loading', '⏳ Connecting wallet...');
+
+                // Request accounts
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                const walletAddress = accounts[0].toLowerCase();
+
+                // Update wallet indicator
+                const indicator = document.getElementById('walletIndicator');
+                indicator.classList.remove('disconnected');
+                document.getElementById('walletStatus').textContent = formatAddress(walletAddress);
+
+                showStatus('loginStatus', 'loading', '⏳ Fetching nonce...');
+
+                // Get nonce
+                const nonceRes = await fetch(`${API_BASE}/admin/auth/nonce?wallet_address=${walletAddress}`);
+                const nonceData = await nonceRes.json();
+
+                if (!nonceRes.ok) {
+                    throw new Error(nonceData.error || 'Failed to get nonce');
+                }
+
+                showStatus('loginStatus', 'loading', '⏳ Please sign the message in MetaMask...');
+
+                // Build EIP-712 typed data for signing
+                const typedData = {
+                    types: {
+                        EIP712Domain: [
+                            { name: 'name', type: 'string' },
+                            { name: 'version', type: 'string' },
+                            { name: 'chainId', type: 'uint256' }
+                        ],
+                        Login: [
+                            { name: 'message', type: 'string' }
+                        ]
+                    },
+                    primaryType: 'Login',
+                    domain: {
+                        name: 'OwnaFarm',
+                        version: '1',
+                        chainId: 5003 // Mantle Sepolia chain ID
+                    },
+                    message: {
+                        message: nonceData.sign_message
+                    }
+                };
+
+                // Sign with EIP-712 typed data
+                const signature = await window.ethereum.request({
+                    method: 'eth_signTypedData_v4',
+                    params: [walletAddress, JSON.stringify(typedData)]
+                });
+
+                showStatus('loginStatus', 'loading', '⏳ Logging in...');
+
+                // Login
+                const loginRes = await fetch(`${API_BASE}/admin/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        wallet_address: walletAddress,
+                        signature: signature,
+                        nonce: nonceData.nonce
+                    })
+                });
+
+                const loginData = await loginRes.json();
+
+                if (!loginRes.ok) {
+                    throw new Error(loginData.error || 'Login failed');
+                }
+
+                authToken = loginData.token;
+
+                // Setup ethers
+                const provider = new ethers.BrowserProvider(window.ethereum);
+                signer = await provider.getSigner();
+                contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+
+                showStatus('loginStatus', 'success', '✅ Login successful!');
+                showResponse('loginResponse', loginData);
+                addLog('Admin logged in successfully', 'success');
+
+                // Show invoice management
+                document.getElementById('invoicesCard').style.display = 'block';
+                document.getElementById('actionLogCard').style.display = 'block';
+
+                // Check for pending retries
+                updateRetryBanner();
+
+                // Load invoices
+                loadInvoices();
+
+            } catch (error) {
+                showStatus('loginStatus', 'error', `❌ ${error.message}`);
+                addLog(`Login failed: ${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // Load invoices
+        async function loadInvoices() {
+            const status = document.getElementById('statusFilter').value;
+            let url = `${API_BASE}/admin/invoices?page=${currentPage}&limit=10`;
+            if (status) url += `&status=${status}`;
+
+            try {
+                showStatus('invoicesStatus', 'loading', '⏳ Loading invoices...');
+
+                const res = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    throw new Error(data.error || 'Failed to load invoices');
+                }
+
+                renderInvoicesTable(data.data.invoices, data.data.pagination);
+                hideStatus('invoicesStatus');
+                showResponse('invoicesResponse', data);
+
+            } catch (error) {
+                showStatus('invoicesStatus', 'error', `❌ ${error.message}`);
+            }
+        }
+
+        function renderInvoicesTable(invoices, pagination) {
+            const container = document.getElementById('invoicesTableContainer');
+
+            if (!invoices || invoices.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <p>No invoices found</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Farmer</th>
+                            <th>Target Fund</th>
+                            <th>Yield</th>
+                            <th>Duration</th>
+                            <th>Status</th>
+                            <th>Token ID</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            for (const inv of invoices) {
+                const isPending = inv.status === 'pending';
+                html += `
+                    <tr>
+                        <td>${inv.name}</td>
+                        <td>${inv.farmer_name || '-'}</td>
+                        <td>Rp ${formatAmount(inv.target_fund)}</td>
+                        <td>${inv.yield_percent}%</td>
+                        <td>${inv.duration_days} days</td>
+                        <td><span class="status-badge ${inv.status}">${inv.status}</span></td>
+                        <td>${inv.token_id || '-'}</td>
+                        <td class="action-buttons">
+                            <button class="btn btn-sm btn-secondary" onclick="viewInvoiceDetail('${inv.id}')">
+                                👁️ View
+                            </button>
+                            ${isPending ? `
+                                <button class="btn btn-sm btn-success" onclick="startApprove('${inv.id}')">
+                                    ✅
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="startReject('${inv.id}')">
+                                    ❌
+                                </button>
+                            ` : ''}
+                        </td>
+                    </tr>
+                `;
+            }
+
+            html += '</tbody></table>';
+
+            // Pagination
+            if (pagination) {
+                html += `
+                    <div class="pagination">
+                        <button class="btn btn-sm btn-secondary" ${pagination.page <= 1 ? 'disabled' : ''} 
+                            onclick="goToPage(${pagination.page - 1})">← Prev</button>
+                        <span class="pagination-info">Page ${pagination.page} of ${pagination.total_pages}</span>
+                        <button class="btn btn-sm btn-secondary" ${pagination.page >= pagination.total_pages ? 'disabled' : ''} 
+                            onclick="goToPage(${pagination.page + 1})">Next →</button>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = html;
+        }
+
+        function goToPage(page) {
+            currentPage = page;
+            loadInvoices();
+        }
+
+        // View invoice detail
+        async function viewInvoiceDetail(invoiceId) {
+            currentInvoice = null;
+            document.getElementById('detailModal').classList.add('show');
+            document.getElementById('detailModalBody').innerHTML = '<div style="text-align: center; padding: 40px;"><p style="color: var(--text-secondary);">Loading...</p></div>';
+
+            try {
+                const res = await fetch(`${API_BASE}/admin/invoices/${invoiceId}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    throw new Error(data.error || 'Failed to load invoice');
+                }
+
+                currentInvoice = data.data.invoice;
+                renderInvoiceDetail(currentInvoice);
+
+            } catch (error) {
+                document.getElementById('detailModalBody').innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: var(--error);">
+                        Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        function renderInvoiceDetail(invoice) {
+            const isPending = invoice.status === 'pending';
+
+            document.getElementById('detailApproveBtn').style.display = isPending ? 'block' : 'none';
+            document.getElementById('detailRejectBtn').style.display = isPending ? 'block' : 'none';
+
+            document.getElementById('detailModalBody').innerHTML = `
+                ${invoice.image_url ? `<img src="${invoice.image_url}" class="invoice-image" alt="${invoice.name}">` : ''}
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <div class="detail-label">Name</div>
+                        <div class="detail-value">${invoice.name}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Status</div>
+                        <div class="detail-value"><span class="status-badge ${invoice.status}">${invoice.status}</span></div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Token ID</div>
+                        <div class="detail-value">${invoice.token_id || 'Not assigned'}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Farm</div>
+                        <div class="detail-value">${invoice.farm_name || '-'}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Target Fund</div>
+                        <div class="detail-value">Rp ${formatAmount(invoice.target_fund)}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Total Funded</div>
+                        <div class="detail-value">Rp ${formatAmount(invoice.total_funded)}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Yield</div>
+                        <div class="detail-value">${invoice.yield_percent}%</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Duration</div>
+                        <div class="detail-value">${invoice.duration_days} days</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Offtaker ID</div>
+                        <div class="detail-value">${invoice.offtaker_id || '-'}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Created At</div>
+                        <div class="detail-value">${new Date(invoice.created_at).toLocaleString()}</div>
+                    </div>
+                </div>
+                ${invoice.description ? `
+                    <div style="margin-top: 16px;">
+                        <div class="detail-label">Description</div>
+                        <div class="detail-value">${invoice.description}</div>
+                    </div>
+                ` : ''}
+                ${invoice.approval_tx_hash ? `
+                    <div style="margin-top: 16px;">
+                        <div class="detail-label">Approval TX Hash</div>
+                        <div class="detail-value" style="font-family: monospace; font-size: 0.8rem; word-break: break-all;">
+                            <a href="https://sepolia.basescan.org/tx/${invoice.approval_tx_hash}" target="_blank" style="color: var(--primary);">
+                                ${invoice.approval_tx_hash}
+                            </a>
+                        </div>
+                    </div>
+                ` : ''}
+                ${invoice.rejection_reason ? `
+                    <div style="margin-top: 16px;">
+                        <div class="detail-label">Rejection Reason</div>
+                        <div class="detail-value" style="color: var(--error);">${invoice.rejection_reason}</div>
+                    </div>
+                ` : ''}
+            `;
+        }
+
+        function closeDetailModal() {
+            document.getElementById('detailModal').classList.remove('show');
+            currentInvoice = null;
+        }
+
+        // Approve flow
+        async function startApprove(invoiceId) {
+            try {
+                const res = await fetch(`${API_BASE}/admin/invoices/${invoiceId}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error);
+
+                currentInvoice = data.data.invoice;
+
+                document.getElementById('approveInvoiceDetails').innerHTML = `
+                    <div style="background: rgba(0,0,0,0.2); border-radius: 8px; padding: 16px;">
+                        <div class="detail-item">
+                            <div class="detail-label">Invoice Name</div>
+                            <div class="detail-value">${currentInvoice.name}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Token ID (from smart contract)</div>
+                            <div class="detail-value">${currentInvoice.token_id || 'N/A'}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Target Fund</div>
+                            <div class="detail-value">Rp ${formatAmount(currentInvoice.target_fund)}</div>
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('approveModal').classList.add('show');
+
+            } catch (error) {
+                showStatus('invoicesStatus', 'error', `❌ ${error.message}`);
+            }
+        }
+
+        function approveFromDetail() {
+            closeDetailModal();
+            startApprove(currentInvoice.id);
+        }
+
+        function closeApproveModal() {
+            document.getElementById('approveModal').classList.remove('show');
+        }
+
+        async function confirmApprove() {
+            if (!currentInvoice || !currentInvoice.token_id) {
+                alert('Token ID is required for approval. Make sure the invoice has a token_id from smart contract.');
+                return;
+            }
+
+            closeApproveModal();
+            showProcessingModal('Approving Invoice...');
+
+            try {
+                // Step 1: Call smart contract
+                updateProcessingStep('Step 1: Calling smart contract approveInvoice()...', 'loading');
+                addLog(`Calling approveInvoice(${currentInvoice.token_id}) on smart contract...`);
+
+                const tx = await contract.approveInvoice(currentInvoice.token_id);
+                updateProcessingStep(`Step 1: Transaction sent (${formatAddress(tx.hash)})`, 'loading');
+                addLog(`Transaction sent: ${tx.hash}`);
+
+                updateProcessingStep('Step 1: Waiting for confirmation...', 'loading');
+                const receipt = await tx.wait();
+                updateProcessingStep('Step 1: ✅ Smart contract approved!', 'success');
+                addLog(`Transaction confirmed in block ${receipt.blockNumber}`, 'success');
+
+                // Step 2: Call backend API
+                updateProcessingStep('Step 2: Updating backend database...', 'loading');
+                addLog('Calling backend API to update invoice status...');
+
+                try {
+                    await callBackendApprove(currentInvoice.id, currentInvoice.token_id, tx.hash);
+                    updateProcessingStep('Step 2: ✅ Backend updated!', 'success');
+                    addLog('Invoice approved successfully in backend', 'success');
+
+                    setTimeout(() => {
+                        closeProcessingModal();
+                        loadInvoices();
+                    }, 1500);
+
+                } catch (backendError) {
+                    // Backend failed but blockchain succeeded - save for retry
+                    savePendingRetry(currentInvoice.id, 'approve', currentInvoice.token_id, tx.hash, currentInvoice.name);
+                    updateProcessingStep(`Step 2: ⚠️ Backend failed: ${backendError.message}`, 'error');
+                    addLog(`Backend update failed: ${backendError.message}. Saved for retry.`, 'error');
+
+                    setTimeout(() => {
+                        closeProcessingModal();
+                        loadInvoices();
+                    }, 2000);
+                }
+
+            } catch (error) {
+                updateProcessingStep(`❌ Error: ${error.message}`, 'error');
+                addLog(`Approval failed: ${error.message}`, 'error');
+                setTimeout(closeProcessingModal, 2000);
+            }
+        }
+
+        async function callBackendApprove(invoiceId, tokenId, txHash) {
+            const res = await fetch(`${API_BASE}/admin/invoices/${invoiceId}/approve`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    token_id: tokenId,
+                    approval_tx_hash: txHash
+                })
+            });
+
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(data.error || 'Backend approval failed');
+            }
+            return data;
+        }
+
+        // Reject flow
+        async function startReject(invoiceId) {
+            try {
+                const res = await fetch(`${API_BASE}/admin/invoices/${invoiceId}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error);
+
+                currentInvoice = data.data.invoice;
+                document.getElementById('rejectReason').value = '';
+                document.getElementById('rejectModal').classList.add('show');
+
+            } catch (error) {
+                showStatus('invoicesStatus', 'error', `❌ ${error.message}`);
+            }
+        }
+
+        function openRejectModal() {
+            closeDetailModal();
+            document.getElementById('rejectReason').value = '';
+            document.getElementById('rejectModal').classList.add('show');
+        }
+
+        function closeRejectModal() {
+            document.getElementById('rejectModal').classList.remove('show');
+        }
+
+        async function confirmReject() {
+            if (!currentInvoice || !currentInvoice.token_id) {
+                alert('Token ID is required for rejection.');
+                return;
+            }
+
+            const reason = document.getElementById('rejectReason').value.trim();
+            closeRejectModal();
+            showProcessingModal('Rejecting Invoice...');
+
+            try {
+                // Step 1: Call smart contract
+                updateProcessingStep('Step 1: Calling smart contract rejectInvoice()...', 'loading');
+                addLog(`Calling rejectInvoice(${currentInvoice.token_id}) on smart contract...`);
+
+                const tx = await contract.rejectInvoice(currentInvoice.token_id);
+                updateProcessingStep(`Step 1: Transaction sent (${formatAddress(tx.hash)})`, 'loading');
+                addLog(`Transaction sent: ${tx.hash}`);
+
+                updateProcessingStep('Step 1: Waiting for confirmation...', 'loading');
+                const receipt = await tx.wait();
+                updateProcessingStep('Step 1: ✅ Smart contract rejected!', 'success');
+                addLog(`Transaction confirmed in block ${receipt.blockNumber}`, 'success');
+
+                // Step 2: Call backend API
+                updateProcessingStep('Step 2: Updating backend database...', 'loading');
+                addLog('Calling backend API to update invoice status...');
+
+                try {
+                    await callBackendReject(currentInvoice.id, reason);
+                    updateProcessingStep('Step 2: ✅ Backend updated!', 'success');
+                    addLog('Invoice rejected successfully in backend', 'success');
+
+                    setTimeout(() => {
+                        closeProcessingModal();
+                        loadInvoices();
+                    }, 1500);
+
+                } catch (backendError) {
+                    // Backend failed but blockchain succeeded - save for retry
+                    savePendingRetry(currentInvoice.id, 'reject', currentInvoice.token_id, tx.hash, currentInvoice.name);
+                    updateProcessingStep(`Step 2: ⚠️ Backend failed: ${backendError.message}`, 'error');
+                    addLog(`Backend update failed: ${backendError.message}. Saved for retry.`, 'error');
+
+                    setTimeout(() => {
+                        closeProcessingModal();
+                        loadInvoices();
+                    }, 2000);
+                }
+
+            } catch (error) {
+                updateProcessingStep(`❌ Error: ${error.message}`, 'error');
+                addLog(`Rejection failed: ${error.message}`, 'error');
+                setTimeout(closeProcessingModal, 2000);
+            }
+        }
+
+        async function callBackendReject(invoiceId, reason) {
+            const res = await fetch(`${API_BASE}/admin/invoices/${invoiceId}/reject`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ reason })
+            });
+
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(data.error || 'Backend rejection failed');
+            }
+            return data;
+        }
+
+        // Processing modal helpers
+        function showProcessingModal(title) {
+            document.getElementById('processingTitle').textContent = title;
+            document.getElementById('processingSteps').innerHTML = '';
+            document.getElementById('processingModal').classList.add('show');
+        }
+
+        function closeProcessingModal() {
+            document.getElementById('processingModal').classList.remove('show');
+        }
+
+        function updateProcessingStep(message, type) {
+            const container = document.getElementById('processingSteps');
+            const color = type === 'success' ? 'var(--success)' : type === 'error' ? 'var(--error)' : 'var(--warning)';
+            container.innerHTML += `<div style="margin-bottom: 8px; color: ${color};">${message}</div>`;
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            updateRetryBanner();
+        });
+    </script>
+
+    <!-- Ethers.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+</body>
+
+</html>

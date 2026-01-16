@@ -166,7 +166,92 @@ Authorization: Bearer {token}
 - `401` - Unauthorized
 - `500` - Internal server error
 
-### 2.2 Approve Farmer
+### 2.2 Get Farmer Detail
+
+Mendapatkan detail farmer beserta dokumen (dengan presigned download URL).
+
+| Method | Endpoint | Auth |
+|--------|----------|------|
+| `GET` | `/admin/farmers/:id` | ✅ Admin |
+
+**Header Required:** `Authorization: Bearer {token}`
+
+**URL Parameters:**
+- `id` (required) - Farmer ID (UUID).
+
+**Example:**
+```bash
+GET /admin/farmers/550e8400-e29b-41d4-a716-446655440000
+Authorization: Bearer {token}
+```
+
+**Response (200):**
+```json
+{
+  "status": "success",
+  "data": {
+    "id": "uuid",
+    "status": "pending",
+    "full_name": "Budi Santoso",
+    "email": "budi@example.com",
+    "phone_number": "+628123456789",
+    "id_number": "3201234567890123",
+    "date_of_birth": "1985-06-15",
+    "address": "Jl. Merdeka No. 123",
+    "province": "Jawa Barat",
+    "city": "Bandung",
+    "district": "Coblong",
+    "postal_code": "40132",
+    "business_name": "Tani Makmur",
+    "business_type": "cv",
+    "npwp": "12.345.678.9-123.000",
+    "bank_name": "Bank BCA",
+    "bank_account_number": "1234567890",
+    "bank_account_name": "Budi Santoso",
+    "years_of_experience": 10,
+    "crops_expertise": ["padi", "jagung", "cabai"],
+    "documents": [
+      {
+        "id": "doc-uuid-1",
+        "document_type": "ktp_photo",
+        "file_name": "ktp.jpg",
+        "download_url": "https://storage.example.com/presigned-url...",
+        "expires_in": 3600
+      },
+      {
+        "id": "doc-uuid-2",
+        "document_type": "selfie_with_ktp",
+        "file_name": "selfie.jpg",
+        "download_url": "https://storage.example.com/presigned-url...",
+        "expires_in": 3600
+      }
+    ],
+    "reviewed_by": null,
+    "reviewed_at": null,
+    "rejection_reason": null,
+    "created_at": "2024-01-15T10:30:00Z"
+  }
+}
+```
+
+**Document Types:**
+
+| Type | Description |
+|------|-------------|
+| `ktp_photo` | Foto KTP |
+| `selfie_with_ktp` | Selfie dengan KTP |
+| `npwp_photo` | Foto NPWP |
+| `bank_statement` | Rekening Koran |
+| `land_certificate` | Sertifikat Tanah |
+| `business_license` | Izin Usaha |
+
+**Errors:**
+- `400` - Farmer ID is required
+- `401` - Unauthorized
+- `404` - Farmer not found
+- `500` - Internal server error
+
+### 2.3 Approve Farmer
 
 Approve farmer yang statusnya `pending`. Status akan berubah menjadi `approved`.
 
@@ -207,7 +292,7 @@ Authorization: Bearer {token}
 - `409` - Farmer has already been processed (not in pending status)
 - `500` - Internal server error
 
-### 2.3 Reject Farmer
+### 2.4 Reject Farmer
 
 Reject farmer yang statusnya `pending`. Status akan berubah menjadi `rejected`. Status ini bersifat final dan tidak dapat diubah.
 

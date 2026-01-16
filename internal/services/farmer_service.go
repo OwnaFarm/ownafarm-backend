@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -17,13 +19,18 @@ import (
 
 // Errors for FarmerService
 var (
-	ErrFarmerAlreadyExists      = errors.New("farmer with this email or phone already exists")
-	ErrInvalidDateFormat        = errors.New("invalid date format, expected YYYY-MM-DD")
-	ErrFarmerNotFound           = errors.New("farmer not found")
-	ErrDocumentNotFound         = errors.New("document not found")
-	ErrInvalidStatusTransition  = errors.New("invalid status transition")
-	ErrFarmerAlreadyProcessed   = errors.New("farmer has already been processed")
+	ErrFarmerAlreadyExists        = errors.New("farmer with this email or phone already exists")
+	ErrWalletAddressAlreadyExists = errors.New("farmer with this wallet address already exists")
+	ErrInvalidWalletAddress       = errors.New("invalid wallet address format")
+	ErrInvalidDateFormat          = errors.New("invalid date format, expected YYYY-MM-DD")
+	ErrFarmerNotFound             = errors.New("farmer not found")
+	ErrDocumentNotFound           = errors.New("document not found")
+	ErrInvalidStatusTransition    = errors.New("invalid status transition")
+	ErrFarmerAlreadyProcessed     = errors.New("farmer has already been processed")
 )
+
+// walletAddressRegex validates Ethereum wallet address format (0x + 40 hex chars)
+var walletAddressRegex = regexp.MustCompile(`^0x[0-9a-fA-F]{40}$`)
 
 // FarmerServiceInterface defines the interface for farmer operations
 type FarmerServiceInterface interface {
@@ -31,8 +38,10 @@ type FarmerServiceInterface interface {
 	GeneratePresignedURLs(ctx context.Context, documentTypes []string) (*response.PresignDocumentsResponse, error)
 	GetDocumentDownloadURL(ctx context.Context, farmerID, documentID string) (*response.DocumentDownloadURLResponse, error)
 	GetListForAdmin(ctx context.Context, req *request.ListFarmerRequest) (*response.ListFarmerResponse, error)
+	GetDetailForAdmin(ctx context.Context, farmerID string) (*response.FarmerDetailResponse, error)
 	ApproveFarmer(ctx context.Context, farmerID, adminID, ipAddress, userAgent string) (*response.FarmerStatusUpdateResponse, error)
 	RejectFarmer(ctx context.Context, farmerID, adminID string, reason *string, ipAddress, userAgent string) (*response.FarmerStatusUpdateResponse, error)
+	GetByID(ctx context.Context, farmerID string) (*models.Farmer, error)
 }
 
 // FarmerService implements FarmerServiceInterface
@@ -57,7 +66,22 @@ func NewFarmerService(
 
 // Register registers a new farmer
 func (s *FarmerService) Register(ctx context.Context, req *request.RegisterFarmerRequest) (*models.Farmer, error) {
-	// Check if farmer already exists
+	// Normalize and validate wallet address
+	walletAddress := strings.ToLower(req.PersonalInfo.WalletAddress)
+	if !walletAddressRegex.MatchString(walletAddress) {
+		return nil, ErrInvalidWalletAddress
+	}
+
+	// Check if wallet address already exists
+	walletExists, err := s.farmerRepo.ExistsByWalletAddress(walletAddress)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check existing wallet address: %w", err)
+	}
+	if walletExists {
+		return nil, ErrWalletAddressAlreadyExists
+	}
+
+	// Check if farmer already exists by email or phone
 	exists, err := s.farmerRepo.ExistsByEmailOrPhone(
 		req.PersonalInfo.Email,
 		req.PersonalInfo.PhoneNumber,
@@ -77,7 +101,8 @@ func (s *FarmerService) Register(ctx context.Context, req *request.RegisterFarme
 
 	// Build farmer model
 	farmer := &models.Farmer{
-		Status: models.FarmerStatusPending,
+		Status:        models.FarmerStatusPending,
+		WalletAddress: walletAddress,
 
 		// Personal Info
 		FullName:    req.PersonalInfo.FullName,
@@ -233,6 +258,7 @@ func (s *FarmerService) GetListForAdmin(ctx context.Context, req *request.ListFa
 		farmerItems = append(farmerItems, response.FarmerListItem{
 			ID:                farmer.ID,
 			Status:            string(farmer.Status),
+			WalletAddress:     farmer.WalletAddress,
 			FullName:          farmer.FullName,
 			Email:             farmer.Email,
 			PhoneNumber:       farmer.PhoneNumber,
@@ -260,6 +286,75 @@ func (s *FarmerService) GetListForAdmin(ctx context.Context, req *request.ListFa
 			TotalItems: totalCount,
 			TotalPages: totalPages,
 		},
+	}, nil
+}
+
+// GetDetailForAdmin retrieves farmer detail with documents for admin
+func (s *FarmerService) GetDetailForAdmin(ctx context.Context, farmerID string) (*response.FarmerDetailResponse, error) {
+	// Get farmer with documents
+	farmer, err := s.farmerRepo.GetByID(farmerID)
+	if err != nil {
+		return nil, ErrFarmerNotFound
+	}
+
+	// Generate presigned download URLs for all documents
+	documents := make([]response.FarmerDocumentItem, 0, len(farmer.Documents))
+	for _, doc := range farmer.Documents {
+		downloadURL, err := s.storageService.GetPresignedDownloadURL(ctx, doc.FileURL, 1*time.Hour)
+		if err != nil {
+			// Log error but continue with empty URL
+			downloadURL = ""
+		}
+
+		documents = append(documents, response.FarmerDocumentItem{
+			ID:           doc.ID,
+			DocumentType: string(doc.DocumentType),
+			FileName:     doc.FileName,
+			DownloadURL:  downloadURL,
+			ExpiresIn:    3600, // 1 hour
+		})
+	}
+
+	// Format dates
+	var reviewedAt *string
+	if farmer.ReviewedAt != nil {
+		formatted := farmer.ReviewedAt.Format(time.RFC3339)
+		reviewedAt = &formatted
+	}
+
+	// Convert crops expertise
+	cropsExpertise := make([]string, len(farmer.CropsExpertise))
+	for i, crop := range farmer.CropsExpertise {
+		cropsExpertise[i] = crop
+	}
+
+	return &response.FarmerDetailResponse{
+		ID:                farmer.ID,
+		Status:            string(farmer.Status),
+		WalletAddress:     farmer.WalletAddress,
+		FullName:          farmer.FullName,
+		Email:             farmer.Email,
+		PhoneNumber:       farmer.PhoneNumber,
+		IDNumber:          farmer.IDNumber,
+		DateOfBirth:       farmer.DateOfBirth.Format("2006-01-02"),
+		Address:           farmer.Address,
+		Province:          farmer.Province,
+		City:              farmer.City,
+		District:          farmer.District,
+		PostalCode:        farmer.PostalCode,
+		BusinessName:      farmer.BusinessName,
+		BusinessType:      string(farmer.BusinessType),
+		NPWP:              farmer.NPWP,
+		BankName:          farmer.BankName,
+		BankAccountNumber: farmer.BankAccountNumber,
+		BankAccountName:   farmer.BankAccountName,
+		YearsOfExperience: farmer.YearsOfExperience,
+		CropsExpertise:    cropsExpertise,
+		Documents:         documents,
+		ReviewedBy:        farmer.ReviewedBy,
+		ReviewedAt:        reviewedAt,
+		RejectionReason:   farmer.RejectionReason,
+		CreatedAt:         farmer.CreatedAt.Format(time.RFC3339),
 	}, nil
 }
 
@@ -373,4 +468,13 @@ func (s *FarmerService) createAuditLog(adminID, action, entityType, entityID, ol
 	if err := s.auditLogRepo.Create(auditLog); err != nil {
 		fmt.Printf("failed to create audit log: %v\n", err)
 	}
+}
+
+// GetByID retrieves a farmer by ID
+func (s *FarmerService) GetByID(ctx context.Context, farmerID string) (*models.Farmer, error) {
+	farmer, err := s.farmerRepo.GetByID(farmerID)
+	if err != nil {
+		return nil, ErrFarmerNotFound
+	}
+	return farmer, nil
 }
