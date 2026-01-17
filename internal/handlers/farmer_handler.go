@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -45,6 +46,20 @@ func (h *FarmerHandler) Register(c *gin.Context) {
 			})
 			return
 		}
+		if errors.Is(err, services.ErrWalletAddressAlreadyExists) {
+			c.JSON(http.StatusConflict, gin.H{
+				"status":  "error",
+				"message": "Farmer with this wallet address already exists",
+			})
+			return
+		}
+		if errors.Is(err, services.ErrInvalidWalletAddress) {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"status":  "error",
+				"message": "Invalid wallet address format, expected 0x followed by 40 hex characters",
+			})
+			return
+		}
 		if errors.Is(err, services.ErrInvalidDateFormat) {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"status":  "error",
@@ -52,6 +67,7 @@ func (h *FarmerHandler) Register(c *gin.Context) {
 			})
 			return
 		}
+		log.Printf("[ERROR] Failed to register farmer: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status":  "error",
 			"message": "Failed to register farmer",
