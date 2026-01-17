@@ -17,6 +17,22 @@ type mockUserRepository struct {
 	GetByWalletAddressFunc func(walletAddress string) (*models.User, error)
 	CreateFunc             func(user *models.User) error
 	UpdateLastLoginFunc    func(userID string) error
+	RegenerateWaterFunc    func(userID string) (*models.User, error)
+	UpdateGameStatsFunc    func(userID string, updates map[string]interface{}) error
+}
+
+func (m *mockUserRepository) UpdateGameStats(userID string, updates map[string]interface{}) error {
+	if m.UpdateGameStatsFunc != nil {
+		return m.UpdateGameStatsFunc(userID, updates)
+	}
+	return nil
+}
+
+func (m *mockUserRepository) RegenerateWater(userID string) (*models.User, error) {
+	if m.RegenerateWaterFunc != nil {
+		return m.RegenerateWaterFunc(userID)
+	}
+	return nil, nil
 }
 
 func (m *mockUserRepository) GetByID(id string) (*models.User, error) {

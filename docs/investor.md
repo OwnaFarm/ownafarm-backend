@@ -127,6 +127,7 @@ Mendapatkan list invoice (farm) yang tersedia untuk diinvest. Menampilkan invoic
     "invoices": [
       {
         "id": "550e8400-e29b-41d4-a716-446655440000",
+        "token_id": 12345,
         "name": "Padi Organik Premium",
         "description": "Penanaman padi organik berkualitas tinggi dengan sistem irigasi modern",
         "image_url": "https://storage.example.com/invoices/rice-organic.jpg",

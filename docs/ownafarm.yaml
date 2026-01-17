@@ -4176,6 +4176,12 @@ components:
           format: uuid
           description: Invoice ID
           example: 550e8400-e29b-41d4-a716-446655440000
+        token_id:
+          type: integer
+          format: int64
+          nullable: true
+          description: Token ID on-chain (untuk investasi melalui smart contract)
+          example: 12345
         name:
           type: string
           description: Invoice/crop name

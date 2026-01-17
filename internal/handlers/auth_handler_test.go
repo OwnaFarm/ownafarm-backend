@@ -241,6 +241,8 @@ type mockUserRepositoryForAuth struct {
 	GetByWalletAddressFunc func(walletAddress string) (*models.User, error)
 	CreateFunc             func(user *models.User) error
 	UpdateLastLoginFunc    func(userID string) error
+	UpdateGameStatsFunc    func(userID string, updates map[string]interface{}) error
+	RegenerateWaterFunc    func(userID string) (*models.User, error)
 }
 
 func (m *mockUserRepositoryForAuth) GetByID(id string) (*models.User, error) {
@@ -269,6 +271,20 @@ func (m *mockUserRepositoryForAuth) UpdateLastLogin(userID string) error {
 		return m.UpdateLastLoginFunc(userID)
 	}
 	return nil
+}
+
+func (m *mockUserRepositoryForAuth) UpdateGameStats(userID string, updates map[string]interface{}) error {
+	if m.UpdateGameStatsFunc != nil {
+		return m.UpdateGameStatsFunc(userID, updates)
+	}
+	return nil
+}
+
+func (m *mockUserRepositoryForAuth) RegenerateWater(userID string) (*models.User, error) {
+	if m.RegenerateWaterFunc != nil {
+		return m.RegenerateWaterFunc(userID)
+	}
+	return nil, nil
 }
 
 // TestGetNonce_Success tests successful nonce generation
