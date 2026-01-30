@@ -824,8 +824,9 @@
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Target Fund (IDR) <span class="required">*</span></label>
-                        <input type="number" id="invoiceTargetFund" min="1" placeholder="100000000">
+                        <label>Target Fund (Token) <span class="required">*</span></label>
+                        <input type="number" id="invoiceTargetFund" min="0.000000000000000001" step="any"
+                            placeholder="100">
                     </div>
                     <div class="form-group">
                         <label>Yield Percent (%) <span class="required">*</span></label>
@@ -1388,7 +1389,7 @@
                             <tr>
                                 <td>${inv.name}</td>
                                 <td>${inv.farm_name}</td>
-                                <td>Rp ${Number(inv.target_fund).toLocaleString('id-ID')}</td>
+                                <td>${Number(inv.target_fund).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })} Token</td>
                                 <td>${inv.yield_percent}%</td>
                                 <td>${inv.duration_days} days</td>
                                 <td><span class="status-badge ${inv.status}">${inv.status}</span></td>
@@ -1528,8 +1529,8 @@
                 }
 
                 // Convert values to contract types
-                // targetFund is in IDR, we'll use it as-is (uint128)
-                const targetFundWei = BigInt(Math.floor(parseFloat(targetFund)));
+                // targetFund is in token amount, convert to wei (18 decimals for ERC-20)
+                const targetFundWei = BigInt(Math.floor(parseFloat(targetFund) * 1e18));
                 // yieldPercent to basis points (yieldBps) - multiply by 100 to get bps from percentage
                 const yieldBps = Math.floor(parseFloat(yieldPercent) * 100);
                 // durationDays to seconds (duration is in seconds in contract)
@@ -1576,7 +1577,7 @@
                 const payload = {
                     farm_id: farmId,
                     name: name,
-                    target_fund: parseFloat(targetFund),
+                    target_fund: parseFloat(targetFund), // Store raw token amount in backend (wei conversion only for smart contract)
                     yield_percent: parseFloat(yieldPercent),
                     duration_days: parseInt(durationDays),
                     tx_hash: receipt.hash, // Include the blockchain transaction hash
