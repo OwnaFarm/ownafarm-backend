@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OwnAFarm - Investor Investment Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.umd.min.js"></script>
+    <style>
+        :root {
+            --primary: #10b981;
+            --primary-dark: #059669;
+            --secondary: #1e293b;
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --success: #22c55e;
+            --error: #ef4444;
+            --warning: #f59e0b;
+            --border: #334155;
+            --gold: #fbbf24;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #1a2332 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary) 0%, #34d399 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .wallet-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border);
+            margin-bottom: 24px;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px -10px rgba(16, 185, 129, 0.5);
+        }
+
+        .btn-secondary {
+            background: var(--secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-gold {
+            background: linear-gradient(135deg, var(--gold) 0%, #f59e0b 100%);
+            color: #1e293b;
+        }
+
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 0.85rem;
+        }
+
+        .status {
+            padding: 10px 14px;
+            border-radius: 8px;
+            margin-top: 12px;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .status.show {
+            display: block;
+        }
+
+        .status.success {
+            background: rgba(34, 197, 94, 0.15);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: var(--success);
+        }
+
+        .status.error {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: var(--error);
+        }
+
+        .status.loading {
+            background: rgba(245, 158, 11, 0.15);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            color: var(--warning);
+        }
+
+        .connected-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(34, 197, 94, 0.15);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            padding: 8px 16px;
+            border-radius: 20px;
+            color: var(--success);
+            font-size: 0.875rem;
+        }
+
+        .pulse {
+            width: 8px;
+            height: 8px;
+            background: var(--success);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        /* Invoice Card */
+        .invoice-card {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .invoice-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px -20px rgba(16, 185, 129, 0.3);
+        }
+
+        .invoice-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .invoice-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 12px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .invoice-meta span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .yield-badge {
+            background: rgba(251, 191, 36, 0.2);
+            color: var(--gold);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+
+        .progress-bar {
+            background: var(--border);
+            border-radius: 8px;
+            height: 8px;
+            margin: 12px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, var(--primary) 0%, #34d399 100%);
+            height: 100%;
+            border-radius: 8px;
+            transition: width 0.5s ease;
+        }
+
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .invest-input {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .invest-input input {
+            flex: 1;
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+        }
+
+        .invest-input input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        /* Crop Card */
+        .crop-card {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .crop-status {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .crop-status.growing {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+        }
+
+        .crop-status.ready {
+            background: rgba(34, 197, 94, 0.2);
+            color: var(--success);
+        }
+
+        .crop-status.harvested {
+            background: rgba(168, 162, 158, 0.2);
+            color: #a8a29e;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 12px;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 32px;
+            width: 90%;
+            max-width: 500px;
+            border: 1px solid var(--border);
+        }
+
+        .modal-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .modal-step {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .modal-step:last-child {
+            border-bottom: none;
+        }
+
+        .step-number {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .step-number.active {
+            background: var(--warning);
+            color: #1e293b;
+        }
+
+        .step-number.done {
+            background: var(--success);
+            color: white;
+        }
+
+        .response-box {
+            background: #0d1117;
+            border-radius: 8px;
+            padding: 12px;
+            font-family: 'SF Mono', 'Consolas', monospace;
+            font-size: 0.75rem;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            margin-top: 12px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .token-info {
+            background: rgba(251, 191, 36, 0.1);
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 16px;
+            font-size: 0.85rem;
+        }
+
+        .token-balance {
+            color: var(--gold);
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">🌾 OwnAFarm Investor Test</div>
+            <div class="wallet-info" id="walletInfo">
+                <button class="btn btn-primary" id="connectBtn" onclick="connectWallet()">
+                    🔗 Connect MetaMask
+                </button>
+            </div>
+        </header>
+
+        <!-- Auth Section -->
+        <div class="card" id="authSection">
+            <div class="card-title">🔐 Authentication</div>
+            <div id="authFlow">
+                <button class="btn btn-secondary" id="authBtn" onclick="authenticate()" disabled>
+                    Authenticate with Wallet
+                </button>
+                <div class="status" id="authStatus"></div>
+            </div>
+            <div id="authSuccess" class="hidden">
+                <div class="connected-badge">
+                    <div class="pulse"></div>
+                    <span>Authenticated</span>
+                </div>
+                <div class="token-info" id="tokenInfo">
+                    GOLD Token: <span class="token-balance" id="goldBalance">Loading...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs" id="mainTabs">
+            <button class="tab active" onclick="switchTab('marketplace')">📊 Marketplace</button>
+            <button class="tab" onclick="switchTab('investments')">🌱 My Investments</button>
+        </div>
+
+        <!-- Marketplace Section -->
+        <div class="tab-content active" id="marketplaceTab">
+            <div class="card">
+                <div class="card-title">
+                    <span>🏪 Available Invoices</span>
+                    <button class="btn btn-sm btn-secondary" onclick="loadMarketplace()" style="margin-left: auto;">
+                        🔄 Refresh
+                    </button>
+                </div>
+                <div class="section-grid" id="invoiceList">
+                    <div class="empty-state">
+                        <p>Connect wallet and authenticate to view invoices</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- My Investments Section -->
+        <div class="tab-content" id="investmentsTab">
+            <div class="card">
+                <div class="card-title">
+                    <span>🌱 My Investments (Crops)</span>
+                    <button class="btn btn-sm btn-secondary" onclick="loadInvestments()" style="margin-left: auto;">
+                        🔄 Refresh
+                    </button>
+                </div>
+                <div class="section-grid" id="cropList">
+                    <div class="empty-state">
+                        <p>No investments yet</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invest Modal -->
+    <div class="modal-overlay" id="investModal">
+        <div class="modal">
+            <div class="modal-title">💰 Invest in <span id="modalInvoiceName"></span></div>
+            <div class="token-info">
+                Token ID: <strong id="modalTokenId"></strong><br>
+                Your Balance: <span class="token-balance" id="modalBalance">0 GOLD</span>
+            </div>
+            <div class="modal-step" id="step1">
+                <div class="step-number" id="step1Num">1</div>
+                <div>
+                    <strong>Approve GOLD Token</strong>
+                    <p style="font-size: 0.85rem; color: var(--text-secondary);">Allow contract to spend your tokens</p>
+                </div>
+            </div>
+            <div class="modal-step" id="step2">
+                <div class="step-number" id="step2Num">2</div>
+                <div>
+                    <strong>Invest</strong>
+                    <p style="font-size: 0.85rem; color: var(--text-secondary);">Send investment to smart contract</p>
+                </div>
+            </div>
+            <div class="modal-step" id="step3">
+                <div class="step-number" id="step3Num">3</div>
+                <div>
+                    <strong>Sync to Backend</strong>
+                    <p style="font-size: 0.85rem; color: var(--text-secondary);">Register investment in database</p>
+                </div>
+            </div>
+            <div class="status" id="modalStatus"></div>
+            <div style="display: flex; gap: 12px; margin-top: 20px;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()" style="flex: 1;">Cancel</button>
+                <button type="button" class="btn btn-gold" id="modalActionBtn" onclick="executeInvestStep(event)"
+                    style="flex: 2;">
+                    Start Investment
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Constants
+        const API_BASE = 'http://localhost:8080';
+        const GOLD_TOKEN_ADDRESS = '0x787c8616d9b8ccdca3b2b930183813828291da9c';
+        const NFT_CONTRACT_ADDRESS = '0xC51601dde25775bA2740EE14D633FA54e12Ef6C7';
+        const CHAIN_ID = 5003; // Mantle Sepolia
+
+        // ERC20 ABI (minimal)
+        const ERC20_ABI = [
+            'function approve(address spender, uint256 amount) returns (bool)',
+            'function allowance(address owner, address spender) view returns (uint256)',
+            'function balanceOf(address account) view returns (uint256)',
+            'function decimals() view returns (uint8)'
+        ];
+
+        // OwnaFarmNFT ABI (minimal for invest)
+        const NFT_ABI = [
+            'function invest(uint256 tokenId, uint128 amount) external',
+            'function investmentCount(address investor) view returns (uint256)',
+            'function getInvestment(address investor, uint256 investmentId) view returns (tuple(uint128 amount, uint32 tokenId, uint32 investedAt, bool claimed))'
+        ];
+
+        // EIP-712 config
+        const EIP712_DOMAIN = {
+            name: 'OwnaFarm',
+            version: '1',
+            chainId: CHAIN_ID
+        };
+
+        const EIP712_TYPES = {
+            Login: [{ name: 'message', type: 'string' }]
+        };
+
+        // State
+        let provider = null;
+        let signer = null;
+        let walletAddress = null;
+        let jwtToken = null;
+        let goldContract = null;
+        let nftContract = null;
+        let currentInvestment = null;
+        let investStep = 0;
+        let investListenerAttached = false;
+
+        // Helper functions
+        function showStatus(elementId, type, message) {
+            const el = document.getElementById(elementId);
+            el.className = `status show ${type}`;
+            el.textContent = message;
+        }
+
+        function hideStatus(elementId) {
+            document.getElementById(elementId).className = 'status';
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById(tabName + 'Tab').classList.add('active');
+
+            if (tabName === 'investments' && jwtToken) {
+                loadInvestments();
+            }
+        }
+
+        // Wallet Connection
+        async function connectWallet() {
+            if (typeof window.ethereum === 'undefined') {
+                alert('MetaMask is not installed!');
+                return;
+            }
+
+            try {
+                provider = new ethers.BrowserProvider(window.ethereum);
+                const accounts = await provider.send('eth_requestAccounts', []);
+                walletAddress = accounts[0];
+                signer = await provider.getSigner();
+
+                // Initialize contracts
+                goldContract = new ethers.Contract(GOLD_TOKEN_ADDRESS, ERC20_ABI, signer);
+                nftContract = new ethers.Contract(NFT_CONTRACT_ADDRESS, NFT_ABI, signer);
+
+                // Update UI
+                document.getElementById('connectBtn').innerHTML = `
+                    <div class="pulse"></div>
+                    ${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}
+                `;
+                document.getElementById('connectBtn').classList.remove('btn-primary');
+                document.getElementById('connectBtn').classList.add('btn-secondary');
+                document.getElementById('connectBtn').disabled = true;
+                document.getElementById('authBtn').disabled = false;
+
+                // Check network
+                const network = await provider.getNetwork();
+                if (Number(network.chainId) !== CHAIN_ID) {
+                    showStatus('authStatus', 'error', `⚠️ Please switch to Mantle Sepolia (Chain ID: ${CHAIN_ID})`);
+                }
+
+            } catch (error) {
+                alert('Failed to connect: ' + error.message);
+            }
+        }
+
+        // Authentication
+        async function authenticate() {
+            try {
+                showStatus('authStatus', 'loading', '⏳ Getting nonce...');
+
+                // Step 1: Get nonce
+                const nonceResp = await fetch(`${API_BASE}/auth/nonce?wallet_address=${walletAddress}`);
+                const nonceData = await nonceResp.json();
+
+                if (nonceData.status !== 'success') {
+                    throw new Error(nonceData.message || 'Failed to get nonce');
+                }
+
+                const { nonce, message } = nonceData.data;
+
+                // Step 2: Sign message
+                showStatus('authStatus', 'loading', '⏳ Please sign the message in MetaMask...');
+                const signature = await signer.signTypedData(EIP712_DOMAIN, EIP712_TYPES, { message });
+
+                // Step 3: Login
+                showStatus('authStatus', 'loading', '⏳ Logging in...');
+                const loginResp = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        wallet_address: walletAddress,
+                        signature: signature,
+                        nonce: nonce
+                    })
+                });
+
+                const loginData = await loginResp.json();
+
+                if (loginData.status !== 'success') {
+                    throw new Error(loginData.message || 'Login failed');
+                }
+
+                jwtToken = loginData.data.token;
+
+                // Update UI
+                document.getElementById('authFlow').classList.add('hidden');
+                document.getElementById('authSuccess').classList.remove('hidden');
+
+                // Load balance
+                await updateGoldBalance();
+
+                // Load marketplace
+                await loadMarketplace();
+
+            } catch (error) {
+                showStatus('authStatus', 'error', '❌ ' + error.message);
+            }
+        }
+
+        async function updateGoldBalance() {
+            try {
+                const balance = await goldContract.balanceOf(walletAddress);
+                const decimals = await goldContract.decimals();
+                const formatted = ethers.formatUnits(balance, decimals);
+                document.getElementById('goldBalance').textContent = `${parseFloat(formatted).toFixed(4)} GOLD`;
+                document.getElementById('modalBalance').textContent = `${parseFloat(formatted).toFixed(4)} GOLD`;
+            } catch (e) {
+                console.error('Error getting balance:', e);
+                document.getElementById('goldBalance').textContent = 'Error loading';
+            }
+        }
+
+        // Marketplace
+        async function loadMarketplace() {
+            if (!jwtToken) {
+                document.getElementById('invoiceList').innerHTML = '<div class="empty-state"><p>Please authenticate first</p></div>';
+                return;
+            }
+
+            try {
+                document.getElementById('invoiceList').innerHTML = '<div class="empty-state"><p>⏳ Loading invoices...</p></div>';
+
+                const resp = await fetch(`${API_BASE}/marketplace/invoices`, {
+                    headers: { 'Authorization': `Bearer ${jwtToken}` }
+                });
+
+                const data = await resp.json();
+
+                if (data.status !== 'success') {
+                    throw new Error(data.message || 'Failed to load invoices');
+                }
+
+                const invoices = data.data?.invoices || [];
+
+                if (invoices.length === 0) {
+                    document.getElementById('invoiceList').innerHTML = '<div class="empty-state"><p>No invoices available for investment</p></div>';
+                    return;
+                }
+
+                document.getElementById('invoiceList').innerHTML = invoices.map(inv => {
+                    const progress = parseFloat(inv.funding_progress) || 0;
+                    const targetFund = parseFloat(inv.target_fund) || 0;
+                    const totalFunded = parseFloat(inv.total_funded) || 0;
+                    const yieldPercent = parseFloat(inv.yield_percent) || 0;
+                    const tokenId = inv.token_id !== null && inv.token_id !== undefined ? inv.token_id : '';
+                    const safeName = (inv.name || '').replace(/"/g, '&quot;');
+
+                    return `
+                        <div class="invoice-card" data-invoice-id="${inv.id}" data-name="${safeName}" data-token-id="${tokenId}">
+                            <div class="invoice-name">${inv.name}</div>
+                            <div class="invoice-meta">
+                                <span>📍 ${inv.farm_location || 'N/A'}</span>
+                                <span>⏱️ ${inv.duration_days} days</span>
+                                <span class="yield-badge">🌾 ${yieldPercent.toFixed(2)}% yield</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${Math.min(progress, 100)}%"></div>
+                            </div>
+                            <div class="progress-text">
+                                <span>${totalFunded.toFixed(2)} / ${targetFund.toFixed(2)} GOLD</span>
+                                <span>${progress.toFixed(1)}% funded</span>
+                            </div>
+                            <div class="invest-input">
+                                <input type="number" class="invest-amount-input" placeholder="Amount GOLD" step="0.01" min="0.01">
+                                <button type="button" class="btn btn-gold invest-btn">
+                                    Invest
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                // Add event delegation for invest buttons - only once
+                if (!investListenerAttached) {
+                    investListenerAttached = true;
+                    document.getElementById('invoiceList').addEventListener('click', function (e) {
+                        if (e.target.classList.contains('invest-btn')) {
+                            e.preventDefault();
+                            e.stopPropagation();
+
+                            const card = e.target.closest('.invoice-card');
+                            if (!card) return;
+
+                            const invoiceId = card.dataset.invoiceId;
+                            const name = card.dataset.name;
+                            const tokenIdStr = card.dataset.tokenId;
+                            const tokenId = tokenIdStr ? parseInt(tokenIdStr, 10) : null;
+                            const amountInput = card.querySelector('.invest-amount-input');
+                            const amount = parseFloat(amountInput?.value || 0);
+
+                            console.log('Invest clicked:', { invoiceId, name, tokenId, amount });
+                            handleInvest(invoiceId, name, tokenId, amount);
+                        }
+                    });
+                }
+
+            } catch (error) {
+                document.getElementById('invoiceList').innerHTML = `<div class="empty-state"><p>❌ ${error.message}</p></div>`;
+            }
+        }
+
+        // Investments
+        async function loadInvestments() {
+            if (!jwtToken) {
+                document.getElementById('cropList').innerHTML = '<div class="empty-state"><p>Please authenticate first</p></div>';
+                return;
+            }
+
+            try {
+                document.getElementById('cropList').innerHTML = '<div class="empty-state"><p>⏳ Loading investments...</p></div>';
+
+                const resp = await fetch(`${API_BASE}/crops`, {
+                    headers: { 'Authorization': `Bearer ${jwtToken}` }
+                });
+
+                const data = await resp.json();
+
+                if (!resp.ok) {
+                    throw new Error(data.error || 'Failed to load investments');
+                }
+
+                const crops = data.crops || [];
+
+                if (crops.length === 0) {
+                    document.getElementById('cropList').innerHTML = '<div class="empty-state"><p>No investments yet. Browse the marketplace to start investing!</p></div>';
+                    return;
+                }
+
+                document.getElementById('cropList').innerHTML = crops.map(crop => `
+                    <div class="crop-card">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                            <div class="invoice-name">${crop.name}</div>
+                            <span class="crop-status ${crop.status}">${crop.status}</span>
+                        </div>
+                        <div class="invoice-meta">
+                            <span>📍 ${crop.location || 'N/A'}</span>
+                            <span>💰 ${crop.invested?.toFixed(2) || 0} GOLD</span>
+                            <span class="yield-badge">🌾 ${crop.yield_percent?.toFixed(2) || 0}%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${crop.progress || 0}%"></div>
+                        </div>
+                        <div class="progress-text">
+                            <span>Progress: ${crop.progress || 0}%</span>
+                            <span>${crop.days_left || 0} days left</span>
+                        </div>
+                        ${crop.can_harvest ? '<button class="btn btn-primary btn-sm" style="margin-top: 12px; width: 100%;">🌾 Harvest</button>' : ''}
+                    </div>
+                `).join('');
+
+            } catch (error) {
+                document.getElementById('cropList').innerHTML = `<div class="empty-state"><p>❌ ${error.message}</p></div>`;
+            }
+        }
+
+        // Investment Modal - called from event delegation
+        function handleInvest(invoiceId, name, tokenId, amount) {
+            try {
+                console.log('handleInvest called:', { invoiceId, name, tokenId, amount });
+
+                if (!amount || amount <= 0) {
+                    alert('Please enter a valid amount');
+                    return;
+                }
+
+                if (tokenId === null || tokenId === undefined) {
+                    alert('This invoice does not have a token ID. Admin may need to approve it on-chain first.');
+                    return;
+                }
+
+                currentInvestment = { invoiceId, name, tokenId, amount };
+                investStep = 0;
+
+                document.getElementById('modalInvoiceName').textContent = name;
+                document.getElementById('modalTokenId').textContent = tokenId;
+                document.getElementById('step1Num').className = 'step-number';
+                document.getElementById('step2Num').className = 'step-number';
+                document.getElementById('step3Num').className = 'step-number';
+                document.getElementById('modalActionBtn').textContent = 'Start Investment';
+                document.getElementById('modalActionBtn').disabled = false;
+                hideStatus('modalStatus');
+
+                document.getElementById('investModal').classList.add('show');
+                updateGoldBalance();
+            } catch (error) {
+                console.error('Error opening invest modal:', error);
+                alert('Error: ' + error.message);
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('investModal').classList.remove('show');
+            currentInvestment = null;
+            investStep = 0;
+        }
+
+        async function executeInvestStep(event) {
+            // Prevent any default form behavior
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+
+            const btn = document.getElementById('modalActionBtn');
+
+            try {
+                if (investStep === 0) {
+                    // Step 1: Approve
+                    document.getElementById('step1Num').className = 'step-number active';
+                    btn.disabled = true;
+                    showStatus('modalStatus', 'loading', '⏳ Approving GOLD token...');
+
+                    const decimals = await goldContract.decimals();
+                    const amountWei = ethers.parseUnits(currentInvestment.amount.toString(), decimals);
+
+                    const tx = await goldContract.approve(NFT_CONTRACT_ADDRESS, amountWei);
+                    showStatus('modalStatus', 'loading', '⏳ Waiting for approval confirmation...');
+                    await tx.wait();
+
+                    document.getElementById('step1Num').className = 'step-number done';
+                    investStep = 1;
+                    btn.textContent = 'Invest Now';
+                    btn.disabled = false;
+                    showStatus('modalStatus', 'success', '✅ Approval successful! Click Invest Now.');
+
+                } else if (investStep === 1) {
+                    // Step 2: Invest
+                    document.getElementById('step2Num').className = 'step-number active';
+                    btn.disabled = true;
+                    showStatus('modalStatus', 'loading', '⏳ Sending investment transaction...');
+
+                    const decimals = await goldContract.decimals();
+                    const amountWei = ethers.parseUnits(currentInvestment.amount.toString(), decimals);
+
+                    const tx = await nftContract.invest(currentInvestment.tokenId, amountWei);
+                    showStatus('modalStatus', 'loading', '⏳ Waiting for investment confirmation...');
+                    await tx.wait();
+
+                    document.getElementById('step2Num').className = 'step-number done';
+                    investStep = 2;
+                    btn.textContent = 'Sync to Backend';
+                    btn.disabled = false;
+                    showStatus('modalStatus', 'success', '✅ Investment successful! Click Sync to Backend.');
+
+                } else if (investStep === 2) {
+                    // Step 3: Sync
+                    document.getElementById('step3Num').className = 'step-number active';
+                    btn.disabled = true;
+                    showStatus('modalStatus', 'loading', '⏳ Syncing investment to backend...');
+
+                    const resp = await fetch(`${API_BASE}/crops/sync`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${jwtToken}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({})
+                    });
+
+                    const data = await resp.json();
+
+                    if (!resp.ok) {
+                        throw new Error(data.error || 'Sync failed');
+                    }
+
+                    document.getElementById('step3Num').className = 'step-number done';
+                    showStatus('modalStatus', 'success', `✅ Synced ${data.synced_count || 0} investment(s)!`);
+                    btn.textContent = 'Done';
+                    btn.onclick = () => {
+                        closeModal();
+                        loadMarketplace();
+                        loadInvestments();
+                        updateGoldBalance();
+                    };
+                    btn.disabled = false;
+                }
+
+            } catch (error) {
+                showStatus('modalStatus', 'error', '❌ ' + (error.reason || error.message));
+                btn.disabled = false;
+            }
+        }
+
+        // Init
+        window.addEventListener('load', async () => {
+            if (typeof window.ethereum !== 'undefined') {
+                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                if (accounts.length > 0) {
+                    await connectWallet();
+                }
+            }
+        });
+
+        if (typeof window.ethereum !== 'undefined') {
+            window.ethereum.on('accountsChanged', () => location.reload());
+            window.ethereum.on('chainChanged', () => location.reload());
+        }
+    </script>
+</body>
+
+</html>

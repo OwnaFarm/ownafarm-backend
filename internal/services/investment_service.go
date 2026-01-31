@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"log"
 	"math"
 	"time"
 
@@ -64,36 +65,48 @@ func NewInvestmentService(
 
 // SyncInvestments syncs investments from blockchain to database
 func (s *InvestmentService) SyncInvestments(ctx context.Context, userID, walletAddress string, req *request.SyncInvestmentsRequest) (*response.SyncInvestmentsResponse, error) {
+	log.Printf("[SyncInvestments] Starting sync for userID=%s, wallet=%s", userID, walletAddress)
+
 	// Get investment count from blockchain
 	count, err := s.blockchainSvc.GetInvestmentCount(ctx, walletAddress)
 	if err != nil {
+		log.Printf("[SyncInvestments] ERROR getting investment count from blockchain: %v", err)
 		return nil, err
 	}
+	log.Printf("[SyncInvestments] Found %d investments on blockchain for wallet %s", count, walletAddress)
 
 	var newCrops []response.CropResponse
 	syncedCount := 0
 
 	// Iterate through all investments
 	for i := uint64(0); i < count; i++ {
+		log.Printf("[SyncInvestments] Processing investment index %d/%d", i, count)
+
 		// Check if investment already exists in database
 		_, err := s.investmentRepo.GetByUserIDAndOnchainID(userID, int64(i))
 		if err == nil {
 			// Investment already exists, skip
+			log.Printf("[SyncInvestments] Investment %d already exists in DB, skipping", i)
 			continue
 		}
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			// Unexpected error
+			log.Printf("[SyncInvestments] ERROR checking existing investment %d: %v", i, err)
 			return nil, err
 		}
 
 		// Get investment from blockchain
 		onchainInv, err := s.blockchainSvc.GetInvestment(ctx, walletAddress, i)
 		if err != nil {
+			log.Printf("[SyncInvestments] ERROR getting investment %d from blockchain: %v", i, err)
 			return nil, err
 		}
+		log.Printf("[SyncInvestments] Got onchain investment %d: amount=%v, tokenID=%d, claimed=%v",
+			i, onchainInv.Amount, onchainInv.TokenID, onchainInv.Claimed)
 
 		// Skip if amount is 0 (invalid investment)
 		if onchainInv.Amount == nil || onchainInv.Amount.Sign() == 0 {
+			log.Printf("[SyncInvestments] Investment %d has zero amount, skipping", i)
 			continue
 		}
 
@@ -101,8 +114,10 @@ func (s *InvestmentService) SyncInvestments(ctx context.Context, userID, walletA
 		invoice, err := s.findInvoiceByTokenID(int64(onchainInv.TokenID))
 		if err != nil {
 			// Invoice not found in our database, skip this investment
+			log.Printf("[SyncInvestments] Invoice with tokenID=%d not found in DB: %v, skipping investment %d", onchainInv.TokenID, err, i)
 			continue
 		}
+		log.Printf("[SyncInvestments] Found invoice %s (name=%s) for tokenID=%d", invoice.ID, invoice.Name, onchainInv.TokenID)
 
 		// Create investment record
 		investedAt := time.Unix(int64(onchainInv.InvestedAt), 0)
@@ -133,23 +148,33 @@ func (s *InvestmentService) SyncInvestments(ctx context.Context, userID, walletA
 			investment.HarvestedAt = &harvestedAt
 		}
 
+		log.Printf("[SyncInvestments] Creating investment record: invoiceID=%s, amount=%s, progress=%d, status=%s",
+			invoice.ID, amount.String(), progress, status)
+
 		if err := s.investmentRepo.Create(investment); err != nil {
+			log.Printf("[SyncInvestments] ERROR creating investment record: %v", err)
 			return nil, err
 		}
+		log.Printf("[SyncInvestments] Successfully created investment record with ID=%s", investment.ID)
 
 		// Update invoice funding totals
 		// Error is logged but doesn't fail the sync - totals can be recalculated later
-		_ = s.invoiceRepo.UpdateFundingTotals(invoice.ID)
+		if err := s.invoiceRepo.UpdateFundingTotals(invoice.ID); err != nil {
+			log.Printf("[SyncInvestments] WARNING: failed to update funding totals for invoice %s: %v", invoice.ID, err)
+		}
 
 		// Reload with relations for response
 		investment, err = s.investmentRepo.GetByIDWithRelations(investment.ID)
 		if err != nil {
+			log.Printf("[SyncInvestments] ERROR reloading investment with relations: %v", err)
 			return nil, err
 		}
 
 		newCrops = append(newCrops, s.toCropResponse(investment))
 		syncedCount++
 	}
+
+	log.Printf("[SyncInvestments] Sync complete. Synced %d new investments for wallet %s", syncedCount, walletAddress)
 
 	return &response.SyncInvestmentsResponse{
 		SyncedCount: syncedCount,
