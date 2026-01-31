@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"reflect"
 	"strings"
 
 	"github.com/ethereum/go-ethereum"
@@ -163,37 +164,53 @@ func (s *blockchainService) GetInvestment(ctx context.Context, investor string, 
 	}
 
 	// Unpack the result
-	var investment struct {
-		Amount     *big.Int
-		TokenId    uint32
-		InvestedAt uint32
-		Claimed    bool
-	}
-
 	unpacked, err := s.abi.Unpack("getInvestment", result)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unpack getInvestment result: %w", err)
 	}
 
-	// The result is a struct, so we need to extract it
-	if len(unpacked) > 0 {
-		invStruct := unpacked[0].(struct {
-			Amount     *big.Int `abi:"amount"`
-			TokenId    uint32   `abi:"tokenId"`
-			InvestedAt uint32   `abi:"investedAt"`
-			Claimed    bool     `abi:"claimed"`
-		})
-		investment.Amount = invStruct.Amount
-		investment.TokenId = invStruct.TokenId
-		investment.InvestedAt = invStruct.InvestedAt
-		investment.Claimed = invStruct.Claimed
+	// The result is a struct, use reflection to extract fields
+	if len(unpacked) == 0 {
+		return nil, fmt.Errorf("empty result from getInvestment")
+	}
+
+	// Use reflect to access fields from the anonymous struct
+	invValue := reflect.ValueOf(unpacked[0])
+	if invValue.Kind() != reflect.Struct {
+		return nil, fmt.Errorf("unexpected type from getInvestment: %T", unpacked[0])
+	}
+
+	// Extract fields by name
+	amountField := invValue.FieldByName("Amount")
+	tokenIdField := invValue.FieldByName("TokenId")
+	investedAtField := invValue.FieldByName("InvestedAt")
+	claimedField := invValue.FieldByName("Claimed")
+
+	var amount *big.Int
+	if amountField.IsValid() && !amountField.IsNil() {
+		amount = amountField.Interface().(*big.Int)
+	}
+
+	var tokenId uint32
+	if tokenIdField.IsValid() {
+		tokenId = uint32(tokenIdField.Uint())
+	}
+
+	var investedAt uint32
+	if investedAtField.IsValid() {
+		investedAt = uint32(investedAtField.Uint())
+	}
+
+	var claimed bool
+	if claimedField.IsValid() {
+		claimed = claimedField.Bool()
 	}
 
 	return &OnchainInvestment{
-		Amount:     investment.Amount,
-		TokenID:    investment.TokenId,
-		InvestedAt: investment.InvestedAt,
-		Claimed:    investment.Claimed,
+		Amount:     amount,
+		TokenID:    tokenId,
+		InvestedAt: investedAt,
+		Claimed:    claimed,
 	}, nil
 }
 
