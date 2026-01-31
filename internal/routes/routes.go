@@ -48,6 +48,7 @@ func SetupRoutes(
 	protected.Use(authMiddleware.AuthRequired())
 	{
 		protected.GET("/users/:id", userHandler.GetByID)
+		protected.GET("/users/me/water", userHandler.GetWaterBalance)
 		// Farmer document download (requires auth)
 		protected.GET("/farmers/:farmer_id/documents/:document_id/download", farmerHandler.GetDocumentDownloadURL)
 

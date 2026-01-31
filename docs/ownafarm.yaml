@@ -2460,6 +2460,61 @@ paths:
                 status: error
                 message: Internal server error
 
+  # ==================== INVESTOR WATER BALANCE ====================
+  /users/me/water:
+    get:
+      summary: Get Water Balance
+      description: >-
+        Mendapatkan saldo water points investor saat ini.
+        Water points digunakan untuk menyiram tanaman (fitur gimmick).
+        Endpoint ini akan auto-regenerate water points berdasarkan waktu yang berlalu.
+        Regen rate: 1 water point per 5 menit, maksimal 100 water points.
+      operationId: getWaterBalance
+      tags:
+        - Investor Crops
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Water balance berhasil diambil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    $ref: '#/components/schemas/WaterBalanceResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Unauthorized
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: User not found
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: Internal server error
+
   # ==================== INVESTOR LEADERBOARD ====================
   /leaderboard:
     get:
@@ -4281,6 +4336,30 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Crop'
+
+    WaterBalanceResponse:
+      type: object
+      properties:
+        water_points:
+          type: integer
+          description: Jumlah water points saat ini
+          example: 75
+        max_water_points:
+          type: integer
+          description: Maksimum water points yang bisa dimiliki
+          example: 100
+        next_regen_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: >-
+            Waktu regenerasi water point berikutnya (ISO 8601).
+            Null jika water_points sudah maksimal.
+          example: '2026-01-31T12:45:00Z'
+        regen_rate:
+          type: integer
+          description: Menit yang diperlukan untuk regenerasi 1 water point
+          example: 5
 
     Crop:
       type: object
