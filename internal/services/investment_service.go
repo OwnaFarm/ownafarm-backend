@@ -46,6 +46,7 @@ type InvestmentService struct {
 	invoiceRepo    repositories.InvoiceRepository
 	userRepo       repositories.UserRepository
 	blockchainSvc  BlockchainService
+	storageService StorageService
 }
 
 // NewInvestmentService creates a new InvestmentService instance
@@ -54,12 +55,14 @@ func NewInvestmentService(
 	invoiceRepo repositories.InvoiceRepository,
 	userRepo repositories.UserRepository,
 	blockchainSvc BlockchainService,
+	storageService StorageService,
 ) *InvestmentService {
 	return &InvestmentService{
 		investmentRepo: investmentRepo,
 		invoiceRepo:    invoiceRepo,
 		userRepo:       userRepo,
 		blockchainSvc:  blockchainSvc,
+		storageService: storageService,
 	}
 }
 
@@ -170,7 +173,7 @@ func (s *InvestmentService) SyncInvestments(ctx context.Context, userID, walletA
 			return nil, err
 		}
 
-		newCrops = append(newCrops, s.toCropResponse(investment))
+		newCrops = append(newCrops, s.toCropResponse(ctx, investment))
 		syncedCount++
 	}
 
@@ -220,7 +223,7 @@ func (s *InvestmentService) ListCrops(ctx context.Context, userID string, req *r
 				_ = s.investmentRepo.UpdateProgress(id, p, st)
 			}(investments[i].ID, progress, status)
 		}
-		crops = append(crops, s.toCropResponse(&investments[i]))
+		crops = append(crops, s.toCropResponse(ctx, &investments[i]))
 	}
 
 	return &response.ListCropsResponse{
@@ -249,7 +252,7 @@ func (s *InvestmentService) GetCrop(ctx context.Context, userID, cropID string) 
 		_ = s.investmentRepo.UpdateProgress(investment.ID, progress, status)
 	}
 
-	resp := s.toCropResponse(investment)
+	resp := s.toCropResponse(ctx, investment)
 	return &resp, nil
 }
 
@@ -307,7 +310,7 @@ func (s *InvestmentService) WaterCrop(ctx context.Context, userID, cropID string
 	}
 
 	return &response.WaterCropResponse{
-		Crop:           s.toCropResponse(investment),
+		Crop:           s.toCropResponse(ctx, investment),
 		XPGained:       WaterXPGain,
 		WaterRemaining: newWaterPoints,
 	}, nil
@@ -325,7 +328,7 @@ func (s *InvestmentService) SyncHarvest(ctx context.Context, userID, walletAddre
 
 	// Already harvested - return with 0 XP (no double XP)
 	if investment.IsHarvested {
-		resp := s.toCropResponse(investment)
+		resp := s.toCropResponse(ctx, investment)
 		return &response.SyncHarvestResponse{
 			Crop:     resp,
 			XPGained: 0,
@@ -375,7 +378,7 @@ func (s *InvestmentService) SyncHarvest(ctx context.Context, userID, walletAddre
 		xpGained = HarvestXPGain
 	}
 
-	resp := s.toCropResponse(investment)
+	resp := s.toCropResponse(ctx, investment)
 	return &response.SyncHarvestResponse{
 		Crop:     resp,
 		XPGained: xpGained,
@@ -406,7 +409,7 @@ func (s *InvestmentService) findInvoiceByTokenID(tokenID int64) (*models.Invoice
 }
 
 // toCropResponse converts an Investment model to CropResponse
-func (s *InvestmentService) toCropResponse(investment *models.Investment) response.CropResponse {
+func (s *InvestmentService) toCropResponse(ctx context.Context, investment *models.Investment) response.CropResponse {
 	invoice := investment.Invoice
 	farm := invoice.Farm
 
@@ -430,10 +433,19 @@ func (s *InvestmentService) toCropResponse(investment *models.Investment) respon
 		harvestAmount = &ha
 	}
 
+	// Generate presigned URL for image
+	var imageURL *string
+	if invoice.ImageURL != nil && *invoice.ImageURL != "" {
+		presignedURL, err := s.storageService.GetPresignedDownloadURL(ctx, *invoice.ImageURL, 1*time.Hour)
+		if err == nil {
+			imageURL = &presignedURL
+		}
+	}
+
 	return response.CropResponse{
 		ID:            investment.ID,
 		Name:          invoice.Name,
-		Image:         invoice.ImageURL,
+		Image:         imageURL,
 		CCTVImage:     farm.CCTVImageUrl,
 		Location:      farm.Location,
 		Progress:      investment.Progress,

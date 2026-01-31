@@ -85,7 +85,7 @@ func main() {
 	farmerService := services.NewFarmerService(farmerRepo, storageService, auditLogRepo)
 	farmService := services.NewFarmService(farmRepo)
 	invoiceService := services.NewInvoiceService(invoiceRepo, farmRepo, storageService, auditLogRepo)
-	investmentService := services.NewInvestmentService(investmentRepo, invoiceRepo, userRepo, blockchainService)
+	investmentService := services.NewInvestmentService(investmentRepo, invoiceRepo, userRepo, blockchainService, storageService)
 	leaderboardRepo := repositories.NewLeaderboardRepository(database.DB)
 	leaderboardService := services.NewLeaderboardService(leaderboardRepo, database.Valkey)
 	adminAuthService := services.NewAdminAuthService(
